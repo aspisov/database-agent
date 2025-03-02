@@ -5,7 +5,7 @@ This module contains the response models used by all agents in the system.
 These models provide a standardized way to return responses to the user.
 """
 
-from typing import Any, Dict, List, Optional, Union
+import typing as tp
 from pydantic import BaseModel, Field
 
 
@@ -19,11 +19,11 @@ class AgentResponse(BaseModel):
     message: str = Field(
         description="A human-readable message describing the result"
     )
-    data: Optional[Dict[str, Any]] = Field(
+    data: dict[str, tp.Any] | None = Field(
         default_factory=dict,
         description="Additional data returned by the agent (e.g., SQL query, visualization data)",
     )
-    error: Optional[str] = Field(
+    error: str | None = Field(
         default=None, description="Error message if the operation failed"
     )
 
@@ -32,7 +32,7 @@ class AgentResponse(BaseModel):
         cls,
         query_type: str,
         message: str,
-        data: Optional[Dict[str, Any]] = None,
+        data: dict[str, tp.Any] | None = None,
     ) -> "AgentResponse":
         """Helper method to create a successful response."""
         return cls(
@@ -57,10 +57,10 @@ class Text2SQLResponse(AgentResponse):
     """Response model specific to Text2SQL agent."""
 
     query_type: str = "Text2SQL"
-    sql_query: Optional[str] = Field(
+    sql_query: str | None = Field(
         default=None, description="The generated SQL query"
     )
-    explanation: Optional[str] = Field(
+    explanation: str | None = Field(
         default=None, description="Explanation of the SQL query"
     )
 
@@ -69,11 +69,11 @@ class VisualizationResponse(AgentResponse):
     """Response model specific to Visualization agent."""
 
     query_type: str = "Visualization"
-    visualization_type: Optional[str] = Field(
+    visualization_type: str | None = Field(
         default=None,
         description="The type of visualization generated (bar, line, etc.)",
     )
-    image_data: Optional[str] = Field(
+    image_data: str | None = Field(
         default=None, description="Base64-encoded image data if applicable"
     )
 

@@ -8,7 +8,10 @@ services:
     ports:
       - 5432:5432
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
+      - ./database/pagila-schema.sql:/docker-entrypoint-initdb.d/01-pagila-schema.sql
+      - ./database/pagila-data.sql:/docker-entrypoint-initdb.d/02-pagila-data.sql
+    restart: always
 
 volumes:
-  postgres_data:
+  pgdata:

@@ -6,10 +6,13 @@ queries that don't require SQL or visualizations.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+import typing as tp
 
+from config.settings import settings
+from openai import OpenAI
 from src.agents.base import Agent
 from src.models.response import AgentResponse, ChatResponse
+from src.prompts.chat_prompts import CHAT_SYSTEM_PROMPT
 
 
 class MockContext:
@@ -20,10 +23,10 @@ class MockContext:
 
     def get_conversation_history(
         self, max_messages: int = 5
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, tp.Any]]:
         return self.messages[-max_messages:] if self.messages else []
 
-    def add_message(self, role: str, content: str) -> Dict[str, Any]:
+    def add_message(self, role: str, content: str) -> dict[str, tp.Any]:
         msg = {"role": role, "content": content}
         self.messages.append(msg)
         return msg
@@ -34,18 +37,18 @@ class ChatAgent(Agent):
     Chat Agent responsible for handling general conversational queries.
     """
 
-    def __init__(self, model: str = "gpt-4"):
+    def __init__(self):
         """
         Initialize the Chat agent.
 
         Args:
             model: The LLM model to use for chat responses.
         """
-        self.model = model
+        self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
         self.logger = logging.getLogger(__name__)
 
     def process_query(
-        self, query: str, context: Optional[Any] = None
+        self, query: str, context: tp.Any | None = None
     ) -> AgentResponse:
         """
         Process a general chat query and return a response.
@@ -59,16 +62,20 @@ class ChatAgent(Agent):
         """
         self.logger.info(f"Processing chat query: {query}")
 
-        # Mock implementation
-        mock_answer = (
-            f"[MOCK] This is a simulated chat response. You asked: {query}"
-        )
+        try:
+            response = self.client.chat.completions.create(
+                model=settings.CHAT_MODEL,
+                messages=[
+                    {"role": "system", "content": CHAT_SYSTEM_PROMPT},
+                    {"role": "user", "content": query},
+                ],
+            )
+            answer = response.choices[0].message.content or ""
 
-        # Update context if provided
-        if context and hasattr(context, "add_message"):
-            context.add_message("user", query)
-            context.add_message("assistant", mock_answer)
-
-        return ChatResponse(
-            message="Chat query processed successfully.", answer=mock_answer
-        )
+            return ChatResponse(
+                message="Chat query processed successfully.",
+                answer=answer,
+            )
+        except Exception as e:
+            self.logger.error(f"Error processing chat query: {e}")
+            return ChatResponse.error_response(query_type="Chat", error=str(e))

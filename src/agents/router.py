@@ -7,14 +7,18 @@ and routing them to the appropriate specialized agent (Text2SQL, Visualization, 
 
 import logging
 import typing as tp
+from openai import OpenAI
 from pydantic import BaseModel, Field
 from enum import Enum
 
+from config import settings
 from src.agents.base import Agent
 from src.agents.chat import ChatAgent
 from src.agents.text2sql import Text2SQLAgent
 from src.agents.visualization import VisualizationAgent
 from src.models.response import AgentResponse
+from config.settings import settings
+from src.prompts.router_prompts import CLASSIFY_SYSTEM_PROMPT
 
 
 class QueryType(str, Enum):
@@ -30,7 +34,7 @@ class QueryClassification(BaseModel):
 
     query_type: QueryType = Field(description="The type of query")
     confidence_score: float = Field(
-        description="Confidence score between 0 and 1", ge=0.0, le=1.0
+        description="Confidence score between 0 and 1"
     )
 
 
@@ -43,6 +47,8 @@ class QueryRouter:
     def __init__(self):
         """Initialize the QueryRouter with its agents."""
         self.logger = logging.getLogger(__name__)
+
+        self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
         # Initialize specialized agents
         self.chat_agent = ChatAgent()
@@ -70,46 +76,22 @@ class QueryRouter:
         """
         self.logger.info(f"Classifying query: {query}")
 
-        # Simple keyword-based classification for the mock version
-        query_lower = query.lower()
-
-        if any(
-            term in query_lower
-            for term in [
-                "sql",
-                "query",
-                "table",
-                "select",
-                "join",
-                "database",
-                "rows",
-                "columns",
-            ]
-        ):
-            return QueryClassification(
-                query_type=QueryType.TEXT2SQL, confidence_score=0.9
+        try:
+            response = self.client.beta.chat.completions.parse(
+                model=settings.ROUTER_MODEL,
+                messages=[
+                    {"role": "system", "content": CLASSIFY_SYSTEM_PROMPT},
+                    {"role": "user", "content": query},
+                ],
+                response_format=QueryClassification,
             )
-        elif any(
-            term in query_lower
-            for term in [
-                "chart",
-                "plot",
-                "graph",
-                "visualize",
-                "bar",
-                "line",
-                "pie",
-                "scatter",
-                "trend",
-            ]
-        ):
-            return QueryClassification(
-                query_type=QueryType.VISUALIZATION, confidence_score=0.9
+            return (
+                response.choices[0].message.parsed
+                or self.default_classification
             )
-        else:
-            return QueryClassification(
-                query_type=QueryType.CHAT, confidence_score=0.7
-            )
+        except Exception as e:
+            self.logger.error(f"Error classifying query: {e}")
+            return self.default_classification
 
     def route_query(
         self, query: str, context: tp.Any | None = None
