@@ -5,31 +5,35 @@ This module provides a connector to interact with PostgreSQL databases.
 """
 
 import logging
-from typing import Dict, List, Any, Optional, Tuple, Union
-
-import psycopg2
-from psycopg2 import sql
-from psycopg2.extensions import connection, cursor
-from psycopg2.extras import RealDictCursor
+import typing as tp
+import pandas as pd
+from sqlalchemy import (
+    create_engine,
+    MetaData,
+    Table,
+    inspect,
+    text,
+    select,
+    func,
+)
+from sqlalchemy.engine import Engine
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import sessionmaker, Session
 
 from config.settings import settings
 
 
 class DatabaseConnector:
-    """
-    PostgreSQL Database Connector
-
-    Handles connections to PostgreSQL databases and provides methods for
-    querying and schema inspection.
-    """
+    """Connector for PostgreSQL database interactions."""
 
     def __init__(
         self,
-        host: str,
-        port: int,
-        dbname: str,
-        user: str,
-        password: str,
+        host: str | None = None,
+        port: int | None = None,
+        dbname: str | None = None,
+        user: str | None = None,
+        password: str | None = None,
+        schema: str | None = None,
     ):
         """
         Initialize the database connector.
@@ -40,47 +44,72 @@ class DatabaseConnector:
             dbname: Database name
             user: Database user
             password: Database password
+            schema: Database schema
         """
-        self.host = host
-        self.port = port
-        self.dbname = dbname
-        self.user = user
-        self.password = password
+        self.host = host or settings.DB_HOST
+        self.port = port or settings.DB_PORT
+        self.dbname = dbname or settings.DB_NAME
+        self.user = user or settings.DB_USER
+        self.password = password or settings.DB_PASSWORD
+        self.schema = schema or settings.DB_SCHEMA
         self.logger = logging.getLogger(__name__)
+
+        # SQLAlchemy components
+        self._engine = None
+        self._metadata = None
+        self._inspector = None
+        self._session_factory = None
         self._connection = None
 
-    def _get_connection(self) -> connection:
+        # Initialize on creation
+        self._initialize()
+
+    def _initialize(self):
+        """Initialize SQLAlchemy components"""
+        self._engine = self._get_connection()
+        self._metadata = MetaData(schema=self.schema)
+        self._metadata.reflect(bind=self._engine)
+        self._inspector = inspect(self._engine)
+        self._session_factory = sessionmaker(bind=self._engine)
+
+    def _get_connection(self) -> Engine:
         """
         Get a database connection.
 
         Returns:
-            psycopg2 connection object
+            SQLAlchemy Engine object
 
         Raises:
             Exception: If connection fails
         """
         try:
-            if self._connection is None or self._connection.closed:
+            if self._engine is None:
                 self.logger.info(
                     f"Connecting to PostgreSQL database {self.dbname} on {self.host}:{self.port}"
                 )
-                self._connection = psycopg2.connect(
-                    host=self.host,
-                    port=self.port,
-                    dbname=self.dbname,
-                    user=self.user,
-                    password=self.password,
+                connection_string = f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.dbname}"
+                self._engine = create_engine(
+                    connection_string,
+                    # echo=settings.DB_ECHO_SQL,
+                    pool_pre_ping=True,
+                    pool_recycle=3600,
                 )
-            return self._connection
+            return self._engine
         except Exception as e:
             self.logger.error(f"Failed to connect to database: {str(e)}")
             raise
 
+    def get_session(self) -> Session:
+        """Get a new SQLAlchemy session"""
+        if self._session_factory is None:
+            self._initialize()
+        return self._session_factory()
+
     def close(self):
         """Close the database connection."""
-        if self._connection and not self._connection.closed:
-            self._connection.close()
-            self._connection = None
+        if self._engine:
+            self._engine.dispose()
+            self._engine = None
             self.logger.info("Database connection closed")
 
     def test_connection(self) -> bool:
@@ -88,229 +117,335 @@ class DatabaseConnector:
         Test the database connection.
 
         Returns:
-            True if connection succeeds, False otherwise
+            True if connection is successful, False otherwise
         """
         try:
-            conn = self._get_connection()
-            with conn.cursor() as cur:
-                cur.execute("SELECT 1")
-                cur.fetchone()
+            with self._engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
             return True
-        except Exception as e:
+        except SQLAlchemyError as e:
             self.logger.error(f"Connection test failed: {str(e)}")
             return False
 
     def execute_query(
         self,
         query: str,
-        params: Optional[Dict[str, Any]] = None,
-        timeout: Optional[int] = None,
-    ) -> Dict[str, Any]:
+        params: dict[str, tp.Any] | None = None,
+        timeout: int | None = None,
+    ) -> dict[str, tp.Any]:
         """
-        Execute an SQL query and return the results.
+        Execute a SQL query and return the results.
 
         Args:
             query: SQL query to execute
-            params: Optional parameters for the query
-            timeout: Optional timeout in seconds
+            params: Query parameters
+            timeout: Query timeout in seconds
 
         Returns:
-            Dictionary containing:
-                - success: Whether the query executed successfully
-                - columns: List of column names (if success)
-                - data: List of tuples with row data (if success)
-                - error: Error message (if not success)
+            Dictionary with query results and metadata
         """
-        self.logger.info(f"Executing query: {query}")
-
-        if timeout is None:
-            timeout = settings.SQL_QUERY_TIMEOUT
-
         try:
-            conn = self._get_connection()
-            with conn.cursor() as cur:
-                cur.execute(query, params or {})
+            with self._engine.connect() as conn:
+                if timeout:
+                    conn = conn.execution_options(timeout=timeout)
 
-                # If the query is a SELECT, fetch results
-                if cur.description:
-                    columns = [desc[0] for desc in cur.description]
-                    data = cur.fetchall()
-                    conn.commit()
+                result_proxy = conn.execute(text(query), params or {})
 
-                    # Truncate result if too large (for UI display)
-                    max_rows = 1000
-                    data_truncated = len(data) > max_rows
-                    if data_truncated:
-                        data = data[:max_rows]
+                if result_proxy.returns_rows:
+                    # Get column names
+                    columns = result_proxy.keys()
+
+                    # Fetch all rows
+                    rows = [
+                        dict(zip(columns, row))
+                        for row in result_proxy.fetchall()
+                    ]
 
                     return {
                         "success": True,
                         "columns": columns,
-                        "data": data,
-                        "row_count": cur.rowcount,
-                        "truncated": data_truncated,
+                        "rows": rows,
+                        "row_count": len(rows),
+                        "query": query,
                     }
                 else:
-                    # Non-SELECT query
-                    conn.commit()
+                    # For INSERT, UPDATE, DELETE operations
                     return {
                         "success": True,
-                        "row_count": cur.rowcount,
-                        "columns": [],
-                        "data": [],
+                        "row_count": result_proxy.rowcount,
+                        "query": query,
                     }
-
         except Exception as e:
             self.logger.error(f"Query execution failed: {str(e)}")
-            return {"success": False, "error": str(e)}
+            return {
+                "success": False,
+                "error": str(e),
+                "query": query,
+            }
 
-    def get_schema_info(self) -> Dict[str, List[Dict[str, str]]]:
+    def get_schema_info(self) -> dict[str, tp.Any]:
         """
-        Get schema information for all tables in the database.
+        Get comprehensive database schema information.
 
         Returns:
-            Dictionary mapping table names to lists of column information dictionaries
+            Dictionary with complete schema information
         """
-        self.logger.info("Retrieving schema information")
+        schema_info = {
+            "tables": [],
+            "relationships": self.get_table_relationships(),
+            "database_name": self.dbname,
+            "schema_name": self.schema,
+        }
 
-        try:
-            schema_query = """
-            SELECT
-                t.table_name,
-                c.column_name,
-                c.data_type,
-                c.column_default,
-                c.is_nullable,
-                pgd.description
-            FROM
-                information_schema.tables t
-                JOIN information_schema.columns c ON t.table_name = c.table_name
-                LEFT JOIN pg_catalog.pg_description pgd ON
-                    pgd.objoid = (
-                        SELECT oid FROM pg_catalog.pg_class 
-                        WHERE relname = t.table_name
-                    )
-                    AND pgd.objsubid = c.ordinal_position
-            WHERE
-                t.table_schema = 'public'
-                AND t.table_type = 'BASE TABLE'
-            ORDER BY
-                t.table_name,
-                c.ordinal_position;
-            """
+        # Get all tables
+        tables = self.get_tables()
 
-            result = self.execute_query(schema_query)
+        for table_name in tables:
+            table_info = {
+                "name": table_name,
+                "columns": [],
+                "primary_keys": self._inspector.get_pk_constraint(table_name)[
+                    "constrained_columns"
+                ],
+                "indexes": self._inspector.get_indexes(table_name),
+                "sample_data": self.get_sample_data(table_name, 3),
+                "row_count": self.get_row_count(table_name),
+            }
 
-            if not result["success"]:
-                self.logger.error(
-                    f"Failed to retrieve schema: {result['error']}"
-                )
-                return {}
-
-            # Process the result into a more usable format
-            schema_info = {}
-            for row in result["data"]:
-                table_name = row[0]
+            # Get column information
+            for column in self._inspector.get_columns(table_name):
                 column_info = {
-                    "name": row[1],
-                    "type": row[2],
-                    "default": row[3],
-                    "nullable": row[4] == "YES",
-                    "description": row[5] or "",
+                    "name": column["name"],
+                    "type": str(column["type"]),
+                    "nullable": column["nullable"],
+                    "default": (
+                        str(column["default"])
+                        if column["default"] is not None
+                        else None
+                    ),
                 }
 
-                if table_name not in schema_info:
-                    schema_info[table_name] = []
+                # Check if column is part of primary key
+                if column["name"] in table_info["primary_keys"]:
+                    column_info["is_primary_key"] = True
 
-                schema_info[table_name].append(column_info)
+                # Add to columns list
+                table_info["columns"].append(column_info)
 
-            return schema_info
+            # Add table info to schema
+            schema_info["tables"].append(table_info)
 
-        except Exception as e:
-            self.logger.error(f"Error retrieving schema information: {str(e)}")
-            return {}
+        return schema_info
 
-    def get_table_relationships(self) -> List[Dict[str, str]]:
+    def get_table_relationships(self) -> list[dict[str, str]]:
         """
         Get foreign key relationships between tables.
 
         Returns:
-            List of dictionaries containing relationship information
+            List of dictionaries with relationship information
         """
-        self.logger.info("Retrieving table relationships")
+        relationships = []
 
-        try:
-            relationship_query = """
-            SELECT
-                tc.table_name AS table_name,
-                kcu.column_name AS column_name,
-                ccu.table_name AS foreign_table_name,
-                ccu.column_name AS foreign_column_name
-            FROM
-                information_schema.table_constraints AS tc
-                JOIN information_schema.key_column_usage AS kcu
-                    ON tc.constraint_name = kcu.constraint_name
-                JOIN information_schema.constraint_column_usage AS ccu
-                    ON ccu.constraint_name = tc.constraint_name
-            WHERE tc.constraint_type = 'FOREIGN KEY';
-            """
-
-            result = self.execute_query(relationship_query)
-
-            if not result["success"]:
-                self.logger.error(
-                    f"Failed to retrieve relationships: {result['error']}"
-                )
-                return []
-
-            relationships = []
-            for row in result["data"]:
+        for table_name in self.get_tables():
+            for fk in self._inspector.get_foreign_keys(table_name):
                 relationship = {
-                    "table": row[0],
-                    "column": row[1],
-                    "foreign_table": row[2],
-                    "foreign_column": row[3],
+                    "source_table": table_name,
+                    "source_column": fk["constrained_columns"][0],
+                    "target_table": fk["referred_table"],
+                    "target_column": fk["referred_columns"][0],
+                    "constraint_name": fk.get("name", ""),
                 }
                 relationships.append(relationship)
 
-            return relationships
+        return relationships
 
-        except Exception as e:
-            self.logger.error(f"Error retrieving table relationships: {str(e)}")
-            return []
-
-    def get_tables(self) -> List[str]:
+    def get_tables(self) -> list[str]:
         """
-        Get a list of all tables in the database.
+        Get list of all tables in the database.
 
         Returns:
             List of table names
         """
-        self.logger.info("Retrieving table list")
+        return self._inspector.get_table_names(schema=self.schema)
 
+    def get_sample_data(
+        self, table_name: str, limit: int = 5
+    ) -> list[dict[str, tp.Any]]:
+        """
+        Get sample data from a table.
+
+        Args:
+            table_name: Name of the table
+            limit: Maximum number of rows to return
+
+        Returns:
+            List of dictionaries with sample data
+        """
         try:
-            tables_query = """
-            SELECT table_name
-            FROM information_schema.tables
-            WHERE table_schema = 'public'
-            AND table_type = 'BASE TABLE'
-            ORDER BY table_name;
-            """
-
-            result = self.execute_query(tables_query)
-
-            if not result["success"]:
-                self.logger.error(
-                    f"Failed to retrieve tables: {result['error']}"
-                )
-                return []
-
-            return [row[0] for row in result["data"]]
-
+            query = f"SELECT * FROM {self.schema}.{table_name} LIMIT {limit}"
+            result = self.execute_query(query)
+            return result.get("rows", [])
         except Exception as e:
-            self.logger.error(f"Error retrieving table list: {str(e)}")
+            self.logger.error(
+                f"Failed to get sample data for {table_name}: {str(e)}"
+            )
             return []
 
+    def get_row_count(self, table_name: str) -> int:
+        """
+        Get the number of rows in a table.
+
+        Args:
+            table_name: Name of the table
+
+        Returns:
+            Number of rows
+        """
+        try:
+            table = Table(
+                table_name, self._metadata, autoload_with=self._engine
+            )
+            with self._engine.connect() as conn:
+                count_query = select(func.count()).select_from(table)
+                result = conn.execute(count_query)
+                return result.scalar()
+        except Exception as e:
+            self.logger.error(
+                f"Failed to get row count for {table_name}: {str(e)}"
+            )
+            return -1
+
+    def get_text2sql_context(self) -> dict[str, tp.Any]:
+        """
+        Get comprehensive context information for text-to-SQL operations.
+
+        Returns:
+            Dictionary with schema and sample data information formatted
+            specifically for text-to-SQL models
+        """
+        schema_info = self.get_schema_info()
+
+        # Format tables information in a text-to-SQL friendly way
+        tables_info = []
+        for table in schema_info["tables"]:
+            table_desc = [
+                f"Table: {table['name']}",
+                f"Columns:",
+            ]
+
+            for col in table["columns"]:
+                pk_marker = "PK" if col.get("is_primary_key") else ""
+                nullable = "NULL" if col["nullable"] else "NOT NULL"
+                table_desc.append(
+                    f"  - {col['name']} ({col['type']}) {pk_marker} {nullable}"
+                )
+
+            if table["sample_data"]:
+                table_desc.append(
+                    f"Sample data ({len(table['sample_data'])} rows):"
+                )
+                for row in table["sample_data"]:
+                    table_desc.append(f"  {row}")
+
+            if table["row_count"] > 0:
+                table_desc.append(f"Total rows: {table['row_count']}")
+
+            tables_info.append("\n".join(table_desc))
+
+        # Format relationships
+        relationships_info = []
+        for rel in schema_info["relationships"]:
+            relationships_info.append(
+                f"{rel['source_table']}.{rel['source_column']} -> "
+                f"{rel['target_table']}.{rel['target_column']}"
+            )
+
+        return {
+            "database_name": schema_info["database_name"],
+            "schema_name": schema_info["schema_name"],
+            "tables": tables_info,
+            "relationships": relationships_info,
+            "sql_dialect": "PostgreSQL",
+        }
+
+    def to_dataframe(
+        self, query_results: dict[str, tp.Any]
+    ) -> pd.DataFrame | None:
+        """
+        Convert query results to a pandas DataFrame.
+
+        Args:
+            query_results: The results from execute_query method
+
+        Returns:
+            pandas DataFrame containing the query results or None if conversion fails
+        """
+        if not query_results.get("success", False):
+            self.logger.error(
+                f"Cannot convert failed query to DataFrame: {query_results.get('error')}"
+            )
+            return None
+
+        if "rows" not in query_results:
+            self.logger.info(
+                "Query did not return any rows to convert to DataFrame"
+            )
+            return None
+
+        try:
+            # Create DataFrame from rows
+            df = pd.DataFrame(query_results["rows"])
+            return df
+        except Exception as e:
+            self.logger.error(
+                f"Failed to convert query results to DataFrame: {str(e)}"
+            )
+            return None
+
+    def execute_query_to_df(
+        self,
+        query: str,
+        params: dict[str, tp.Any] | None = None,
+        timeout: int | None = None,
+    ) -> pd.DataFrame | None:
+        """
+        Execute a SQL query and return the results as a pandas DataFrame.
+
+        Args:
+            query: SQL query to execute
+            params: Query parameters
+            timeout: Query timeout in seconds
+
+        Returns:
+            DataFrame with query results or None if query fails
+        """
+        results = self.execute_query(query, params, timeout)
+        return self.to_dataframe(results)
+
     def __del__(self):
-        """Destructor to ensure connection is closed."""
+        """Clean up resources when object is garbage collected."""
         self.close()
+
+
+if __name__ == "__main__":
+    from pprint import pprint
+
+    connector = DatabaseConnector()
+    pprint(connector.get_text2sql_context())
+
+    print("\n\n")
+    query = """
+    SELECT b.Title
+    FROM Books b
+    JOIN Authors a ON b.AuthorID = a.AuthorID
+    WHERE a.Country = 'United Kingdom';
+    """
+    # Execute query and get results as dictionary
+    results = connector.execute_query(query)
+    pprint(results)
+
+    # Execute query and get results as DataFrame
+    print("\n\nSame results as DataFrame:")
+    df = connector.execute_query_to_df(query)
+    if df is not None:
+        print(df.head())

@@ -8,9 +8,26 @@ queries into executable SQL queries for PostgreSQL.
 import logging
 import typing as tp
 
+from openai import OpenAI
+
 from src.agents.base import Agent
+from src.database.connector import DatabaseConnector
 from src.models.response import AgentResponse, Text2SQLResponse
 from config.settings import settings
+from pydantic import BaseModel, Field
+from src.prompts.text2sql_prompts import (
+    TEXT2SQL_SYSTEM_PROMPT,
+    TEXT2SQL_USER_PROMPT,
+)
+
+
+class SQLQuery(BaseModel):
+    """SQL query response from the Text2SQL agent."""
+
+    chain_of_thought: str = Field(
+        description="The chain of thought process for the query"
+    )
+    sql_query: str = Field(description="The generated SQL query")
 
 
 class Text2SQLAgent(Agent):
@@ -26,8 +43,9 @@ class Text2SQLAgent(Agent):
         Args:
             model: The LLM model to use for SQL generation.
         """
-        self.model = settings.TEXT2SQL_MODEL
         self.logger = logging.getLogger(__name__)
+        self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        self.connector = DatabaseConnector()
 
     def process_query(
         self, query: str, context: tp.Any | None = None
@@ -44,24 +62,34 @@ class Text2SQLAgent(Agent):
         """
         self.logger.info(f"Processing Text2SQL query: {query}")
 
-        # Generate a mock SQL query
-        mock_sql = (
-            f"SELECT * FROM users WHERE description LIKE '%{query}%' LIMIT 10;"
-        )
-        mock_explanation = f"This is a mock SQL query that searches for '{query}' in the users table."
+        metadata = self.connector.get_text2sql_context()
+        self.logger.debug(f"Metadata: {metadata}")
 
-        # Update context if available
-        if context and hasattr(context, "update_current_sql"):
-            context.update_current_sql(mock_sql)
-
-        if context and hasattr(context, "add_message"):
-            context.add_message("user", query)
-            context.add_message(
-                "assistant", f"SQL: {mock_sql}\n\n{mock_explanation}"
+        try:
+            response = self.client.beta.chat.completions.parse(
+                model=settings.TEXT2SQL_MODEL,
+                messages=[
+                    {"role": "system", "content": TEXT2SQL_SYSTEM_PROMPT},
+                    {
+                        "role": "user",
+                        "content": TEXT2SQL_USER_PROMPT.format(
+                            query=query, metadata=metadata
+                        ),
+                    },
+                ],
+                response_format=SQLQuery,
             )
+            sql_query = response.choices[0].message.parsed
 
-        return Text2SQLResponse(
-            message="SQL query generated successfully.",
-            sql_query=mock_sql,
-            explanation=mock_explanation,
-        )
+            return Text2SQLResponse(
+                success=True,
+                message=sql_query.chain_of_thought,
+                sql_query=sql_query.sql_query,
+                df=self.connector.execute_query_to_df(sql_query.sql_query).to_string(),
+            )
+        except Exception as e:
+            self.logger.error(f"Error processing Text2SQL query: {e}")
+            return AgentResponse.error(
+                message="Error processing Text2SQL query",
+                error=e,
+            )

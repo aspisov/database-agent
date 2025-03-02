@@ -7,6 +7,7 @@ These models provide a standardized way to return responses to the user.
 
 import typing as tp
 from pydantic import BaseModel, Field
+import pandas as pd
 
 
 class AgentResponse(BaseModel):
@@ -19,28 +20,9 @@ class AgentResponse(BaseModel):
     message: str = Field(
         description="A human-readable message describing the result"
     )
-    data: dict[str, tp.Any] | None = Field(
-        default_factory=dict,
-        description="Additional data returned by the agent (e.g., SQL query, visualization data)",
-    )
     error: str | None = Field(
         default=None, description="Error message if the operation failed"
     )
-
-    @classmethod
-    def success_response(
-        cls,
-        query_type: str,
-        message: str,
-        data: dict[str, tp.Any] | None = None,
-    ) -> "AgentResponse":
-        """Helper method to create a successful response."""
-        return cls(
-            success=True,
-            query_type=query_type,
-            message=message,
-            data=data or {},
-        )
 
     @classmethod
     def error_response(cls, query_type: str, error: str) -> "AgentResponse":
@@ -57,11 +39,15 @@ class Text2SQLResponse(AgentResponse):
     """Response model specific to Text2SQL agent."""
 
     query_type: str = "Text2SQL"
+    explanation: str | None = Field(
+        default=None, description="Explanation of the SQL query"
+    )
     sql_query: str | None = Field(
         default=None, description="The generated SQL query"
     )
-    explanation: str | None = Field(
-        default=None, description="Explanation of the SQL query"
+    df: str | None = Field(
+        default=None,
+        description="Executed query results as a pandas DataFrame",
     )
 
 

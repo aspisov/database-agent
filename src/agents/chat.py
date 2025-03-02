@@ -15,23 +15,6 @@ from src.models.response import AgentResponse, ChatResponse
 from src.prompts.chat_prompts import CHAT_SYSTEM_PROMPT
 
 
-class MockContext:
-    """Temporary mock context class for development."""
-
-    def __init__(self):
-        self.messages = []
-
-    def get_conversation_history(
-        self, max_messages: int = 5
-    ) -> list[dict[str, tp.Any]]:
-        return self.messages[-max_messages:] if self.messages else []
-
-    def add_message(self, role: str, content: str) -> dict[str, tp.Any]:
-        msg = {"role": role, "content": content}
-        self.messages.append(msg)
-        return msg
-
-
 class ChatAgent(Agent):
     """
     Chat Agent responsible for handling general conversational queries.

@@ -11,6 +11,8 @@ class Settings:
     DB_USER: str = os.getenv("DB_USER", "postgres")
     DB_PASSWORD: str = os.getenv("DB_PASSWORD", "postgres")
     DB_NAME: str = os.getenv("DB_NAME", "postgres")
+    DB_SCHEMA: str = os.getenv("DB_SCHEMA", "public")
+    ALLOW_MANIPULATION: bool = bool(os.getenv("ALLOW_MANIPULATION", "True"))
 
     # OpenAI
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "your_api_key_here")

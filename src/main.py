@@ -8,7 +8,7 @@ import logging
 import json
 
 from src.agents.router import QueryRouter
-from src.agents.chat import ChatAgent, MockContext
+from src.agents.chat import ChatAgent
 from src.models.response import (
     AgentResponse,
     Text2SQLResponse,
@@ -46,11 +46,17 @@ def format_response(response: AgentResponse) -> str:
         sql_query = getattr(
             text2sql_response, "sql_query", "No SQL query available"
         )
-        return (
+        df = getattr(text2sql_response, "df", None)
+
+        response_str = (
+            f"💡 Explanation: {response.message}\n"
             f"🔍 SQL Query:\n"
-            f"{sql_query}\n\n"
-            f"💡 Explanation: {response.message}"
+            f"{sql_query}\n"
         )
+        if df is not None:
+            response_str += f"📑 DataFrame:\n"
+            response_str += f"{df}\n"
+        return response_str + "\n"
     elif response.query_type == "Visualization":
         # Cast to the specific response type
         viz_response = (
@@ -75,9 +81,6 @@ def main() -> None:
     logger = logging.getLogger(__name__)
     logger.info("Starting Conversational Database Agent")
 
-    # Create a mock context for testing
-    context = MockContext()
-
     # Initialize the router
     router = QueryRouter()
 
@@ -97,7 +100,7 @@ def main() -> None:
 
         # Route the query and get response
         try:
-            response = router.route_query(user_query, context)
+            response = router.route_query(user_query)
             print("\n" + format_response(response))
 
             # For debugging
