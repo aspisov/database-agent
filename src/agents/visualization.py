@@ -6,10 +6,24 @@ visualization code based on natural language queries and query results.
 """
 
 import logging
-from typing import Any, Dict, Optional
+import typing as tp
+from openai import OpenAI
+import pandas as pd
+from pydantic import BaseModel, Field
 
 from src.agents.base import Agent
 from src.models.response import AgentResponse, VisualizationResponse
+from src.agents.text2sql import Text2SQLAgent
+from config.settings import settings
+from src.prompts.visualization_prompt import MODIFY_QUERY_SYSTEM_PROMPT
+
+
+class ModifiedQuery(BaseModel):
+    """Modifies visualization query for the Text2SQL agent to recieve desired dataframe"""
+
+    query: str = Field(
+        description="Modified query that would recieve relevant data from database"
+    )
 
 
 class VisualizationAgent(Agent):
@@ -18,18 +32,35 @@ class VisualizationAgent(Agent):
     data based on natural language descriptions.
     """
 
-    def __init__(self, model: str = "gpt-4"):
+    def __init__(self):
         """
         Initialize the visualization agent.
 
         Args:
             model: The LLM model to use for visualization code generation.
         """
-        self.model = model
+        self.client = OpenAI(api_key=settings.VISUALIZATION_MODEL)
         self.logger = logging.getLogger(__name__)
 
+    def modify_query(self, query: str) -> str:
+        response = self.client.beta.chat.completions.parse(
+            model=settings.LLM_MODEL,
+            messages=[
+                {"role": "system", "content": MODIFY_QUERY_SYSTEM_PROMPT},
+                {"role": "user", "content": f"Query: {query}"},
+            ],
+            response_format=ModifiedQuery,
+        )
+
+        text2sql_query = response.choices[0].message.parsed
+
+        return text2sql_query.query
+
+    def _generate_visualization_code(self, query: str, df: pd.DataFrame):
+        pass
+
     def process_query(
-        self, query: str, context: Optional[Any] = None
+        self, query: str, context: tp.Any | None = None
     ) -> AgentResponse:
         """
         Process a visualization query and generate a visualization description.
@@ -43,38 +74,7 @@ class VisualizationAgent(Agent):
         """
         self.logger.info(f"Processing visualization query: {query}")
 
-        # Determine a mock visualization type based on keywords in the query
-        viz_type = "bar"
-        if (
-            "line" in query.lower()
-            or "trend" in query.lower()
-            or "over time" in query.lower()
-        ):
-            viz_type = "line"
-        elif "scatter" in query.lower() or "correlation" in query.lower():
-            viz_type = "scatter"
-        elif "pie" in query.lower() or "proportion" in query.lower():
-            viz_type = "pie"
-
-        # Create a mock visualization description
-        mock_description = (
-            f"This is a mock {viz_type} chart visualization for: {query}"
-        )
-
-        # Update context if available
-        if context and hasattr(context, "add_message"):
-            context.add_message("user", query)
-            context.add_message(
-                "assistant",
-                f"I've created a {viz_type} chart based on your query: {query}",
-            )
-
-        return VisualizationResponse(
-            message="Visualization created successfully.",
-            visualization_type=viz_type,
-            data={
-                "type": viz_type,
-                "description": mock_description,
-                "mock_data": True,
-            },
-        )
+        text2sql_query = self.modify_query(query)
+        text2sql_agent = Text2SQLAgent()
+        sql_response = text2sql_agent.process_query(text2sql_query)
+        return sql_response

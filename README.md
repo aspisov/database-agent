@@ -124,16 +124,11 @@ The Streamlit UI will open in your default web browser.
 
 You can also run the application using Docker:
 
-  
-
 ```bash
-
 docker-compose up -d
-
 ```
 
 This will start both the application and a PostgreSQL database.
-
 
 ## Project Structure
 
@@ -188,61 +183,11 @@ database-agent/
   
 
 ### Adding New Features
-
-  
-
 1. For new agent types, create a new file in the `src/agents/` directory
-
 2. For UI enhancements, modify files in the `src/ui/` directory
-
 3. For database improvements, modify files in the `src/database/` directory
 
-  
-
-### Testing
-
-1. **List all books written by authors from the United Kingdom.**
-   ```sql
-   SELECT b.Title
-   FROM Books b
-   JOIN Authors a ON b.AuthorID = a.AuthorID
-   WHERE a.Country = 'United Kingdom';
-   ```
-
-2. **Find all books published before 1900.**
-   ```sql
-   SELECT Title
-   FROM Books
-   WHERE PublicationYear < 1900;
-   ```
-
-3. **Retrieve the names of authors who have written books in the 'Dystopian' genre.**
-   ```sql
-   SELECT DISTINCT a.Name
-   FROM Authors a
-   JOIN Books b ON a.AuthorID = b.AuthorID
-   WHERE b.Genre = 'Dystopian';
-   ```
-
-4. **Count the number of books for each author.**
-   ```sql
-   SELECT a.Name, COUNT(b.BookID) AS BookCount
-   FROM Authors a
-   LEFT JOIN Books b ON a.AuthorID = b.AuthorID
-   GROUP BY a.Name;
-   ```
-
-5. **List the titles of books along with their author's name and publication year.**
-   ```sql
-   SELECT b.Title, a.Name, b.PublicationYear
-   FROM Books b
-   JOIN Authors a ON b.AuthorID = a.AuthorID;
-   ```
-  
-
 ## License
-
-  
 
 MIT
 

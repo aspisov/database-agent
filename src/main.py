@@ -59,15 +59,23 @@ def format_response(response: AgentResponse) -> str:
         return response_str + "\n"
     elif response.query_type == "Visualization":
         # Cast to the specific response type
-        viz_response = (
-            response if isinstance(response, VisualizationResponse) else None
+        text2sql_response = (
+            response if isinstance(response, Text2SQLResponse) else None
         )
-        viz_type = getattr(viz_response, "visualization_type", "unknown")
-        return (
-            f"📊 Visualization ({viz_type}):\n"
-            f"{response.message}\n"
-            f"[Visualization would be displayed here in a real UI]"
+        sql_query = getattr(
+            text2sql_response, "sql_query", "No SQL query available"
         )
+        df = getattr(text2sql_response, "df", None)
+
+        response_str = (
+            f"💡 Explanation: {response.message}\n"
+            f"🔍 SQL Query:\n"
+            f"{sql_query}\n"
+        )
+        if df is not None:
+            response_str += f"📑 DataFrame:\n"
+            response_str += f"{df}\n"
+        return response_str + "\n"
     else:  # Chat
         # Cast to the specific response type
         chat_response = response if isinstance(response, ChatResponse) else None

@@ -26,15 +26,7 @@ from config.settings import settings
 class DatabaseConnector:
     """Connector for PostgreSQL database interactions."""
 
-    def __init__(
-        self,
-        host: str | None = None,
-        port: int | None = None,
-        dbname: str | None = None,
-        user: str | None = None,
-        password: str | None = None,
-        schema: str | None = None,
-    ):
+    def __init__(self):
         """
         Initialize the database connector.
 
@@ -46,12 +38,12 @@ class DatabaseConnector:
             password: Database password
             schema: Database schema
         """
-        self.host = host or settings.DB_HOST
-        self.port = port or settings.DB_PORT
-        self.dbname = dbname or settings.DB_NAME
-        self.user = user or settings.DB_USER
-        self.password = password or settings.DB_PASSWORD
-        self.schema = schema or settings.DB_SCHEMA
+        self.host = settings.DB_HOST
+        self.port = settings.DB_PORT
+        self.dbname = settings.DB_NAME
+        self.user = settings.DB_USER
+        self.password = settings.DB_PASSWORD
+        self.schema = settings.DB_SCHEMA
         self.logger = logging.getLogger(__name__)
 
         # SQLAlchemy components
@@ -432,20 +424,3 @@ if __name__ == "__main__":
 
     connector = DatabaseConnector()
     pprint(connector.get_text2sql_context())
-
-    print("\n\n")
-    query = """
-    SELECT b.Title
-    FROM Books b
-    JOIN Authors a ON b.AuthorID = a.AuthorID
-    WHERE a.Country = 'United Kingdom';
-    """
-    # Execute query and get results as dictionary
-    results = connector.execute_query(query)
-    pprint(results)
-
-    # Execute query and get results as DataFrame
-    print("\n\nSame results as DataFrame:")
-    df = connector.execute_query_to_df(query)
-    if df is not None:
-        print(df.head())
