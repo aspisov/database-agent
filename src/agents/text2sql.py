@@ -85,7 +85,9 @@ class Text2SQLAgent(Agent):
                 success=True,
                 message=sql_query.chain_of_thought,
                 sql_query=sql_query.sql_query,
-                df=self.connector.execute_query_to_df(sql_query.sql_query).to_string(),
+                query_results=self.connector.execute_query(
+                    sql_query.sql_query
+                ),
             )
         except Exception as e:
             self.logger.error(f"Error processing Text2SQL query: {e}")

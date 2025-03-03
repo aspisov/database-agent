@@ -45,9 +45,9 @@ class Text2SQLResponse(AgentResponse):
     sql_query: str | None = Field(
         default=None, description="The generated SQL query"
     )
-    df: str | None = Field(
+    query_results: dict[str, tp.Any] | None = Field(
         default=None,
-        description="Executed query results as a pandas DataFrame",
+        description="Dictionary with query results and metadata",
     )
 
 
