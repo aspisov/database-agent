@@ -1,4 +1,4 @@
-# PostgreSQL AI Agent
+# Database Agent
 
 A conversational AI agent for PostgreSQL databases, inspired by Pandas AI. This agent allows users to interact with their PostgreSQL database using natural language, without needing to write SQL queries.
 
