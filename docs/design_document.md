@@ -1,9 +1,9 @@
-# PostgreSQL AI Agent: Design Document
+# Database Agent: Design Document
 
 ## 1. Problem Definition
 
 ### 1.1 Origin
-The PostgreSQL AI Agent is designed to address the challenge of database interaction for users without SQL expertise. Traditional database interactions require users to write SQL queries, which can be a significant barrier for non-technical users who need to extract insights from their data. This agent aims to bridge this gap by allowing users to interact with PostgreSQL databases using natural language.
+The Database Agent is designed to address the challenge of database interaction for users without SQL expertise. Traditional database interactions require users to write SQL queries, which can be a significant barrier for non-technical users who need to extract insights from their data. This agent aims to bridge this gap by allowing users to interact with PostgreSQL databases using natural language.
 
 ### 1.2 Relevance and Reasons
 - **Technical Barrier Reduction**: Many business users need database insights but lack SQL knowledge
