@@ -37,7 +37,7 @@ class VisualizationAgent(Agent):
         Args:
             model: The LLM model to use for visualization code generation.
         """
-        self.client = OpenAI(api_key=settings.VISUALIZATION_MODEL)
+        self.client = OpenAI(api_key=settings.GENERATION_MODEL)
         self.logger = logging.getLogger(__name__)
 
     def process_query(
@@ -57,5 +57,6 @@ class VisualizationAgent(Agent):
 
         return AgentResponse.error_response(
             query_type="Visualization",
+            query=query,
             error="Visualization agent is not implemented yet",
         )

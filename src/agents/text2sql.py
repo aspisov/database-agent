@@ -84,7 +84,7 @@ class Text2SQLAgent(Agent):
 
         try:
             response = self.client.beta.chat.completions.parse(
-                model=settings.TEXT2SQL_MODEL,
+                model=settings.LOGIC_MODEL,
                 messages=[
                     {
                         "role": "system",
@@ -132,7 +132,7 @@ class Text2SQLAgent(Agent):
 
         try:
             response = self.client.beta.chat.completions.parse(
-                model=settings.TEXT2SQL_MODEL,
+                model=settings.GENERATION_MODEL,
                 messages=[
                     {
                         "role": "system",

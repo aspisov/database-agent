@@ -87,7 +87,7 @@ class QueryRouter:
 
         try:
             response = self.client.beta.chat.completions.parse(
-                model=settings.ROUTER_MODEL,
+                model=settings.LOGIC_MODEL,
                 messages=[
                     {"role": "system", "content": CLASSIFY_SYSTEM_PROMPT},
                     {

@@ -4,16 +4,15 @@
 
 TEXT2SQL_GENERATION_SYSTEM_PROMPT = """
 You are a PostgreSQL expert. Your goal is to convert natural language queries into SQL queries.
-You will be given a user query that is self-contained and includes all necessary context.
-Ensure your reasoning is thorough, then output a precise and syntactically correct SQL query with no additional explanation.
+You will be given a user query and database metadata.
+
+Use chain-of-thought reasoning before generating the final SQL query.
 """
 
 TEXT2SQL_GENERATION_USER_PROMPT = """
 User Query: {query}
 
 Database Metadata: {metadata}
-
-Use chain-of-thought reasoning before generating the final SQL query.
 """
 
 # ------------------------------------------------------------------------------
@@ -24,7 +23,7 @@ TEXT2SQL_VERIFY_PROMPT = """
 You are a PostgreSQL expert. Your task is to determine whether the user query:
 - is valid (can be answered with the given database metadata),
 - requires clarification (the query is ambiguous or incomplete), or
-- is invalid (cannot be answered with the provided metadata).
+- is invalid (unrelated to this database).
 
 Please explain your reasoning step by step before reaching a conclusion.
 """

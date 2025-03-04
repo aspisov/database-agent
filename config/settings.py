@@ -18,30 +18,17 @@ class Settings:
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "your_api_key_here")
 
     # Default LLM settings
-    LLM_MODEL: str = os.getenv("LLM_MODEL", "gpt-4o-mini")
-    LLM_TEMPERATURE: float = float(os.getenv("LLM_TEMPERATURE", "0.7"))
-
-    # Agent-specific models (using the default if not specified)
-    ROUTER_MODEL: str = os.getenv("ROUTER_MODEL", LLM_MODEL)
-    TEXT2SQL_MODEL: str = os.getenv("TEXT2SQL_MODEL", LLM_MODEL)
-    VISUALIZATION_MODEL: str = os.getenv("VISUALIZATION_MODEL", LLM_MODEL)
-    CHAT_MODEL: str = os.getenv("CHAT_MODEL", LLM_MODEL)
-
-    # Agent-specific temperatures
-    ROUTER_TEMPERATURE: float = (
-        0.2  # Lower temperature for more consistent classifications
+    LOGIC_MODEL: str = os.getenv("LLM_MODEL", "gpt-4o-mini")
+    GENERATION_MODEL: str = os.getenv("GENERATION_MODEL", "gpt-4o-mini")
+    LOGIC_MODEL_TEMPERATURE: float = float(
+        os.getenv("LOGIC_MODEL_TEMPERATURE", "1")
     )
-    TEXT2SQL_TEMPERATURE: float = 0.3  # Moderate temperature for SQL generation
-    VISUALIZATION_TEMPERATURE: float = (
-        0.5  # Medium temperature for visualization code
-    )
-    CHAT_TEMPERATURE: float = (
-        0.7  # Higher temperature for more creative chat responses
+    GENERATION_MODEL_TEMPERATURE: float = float(
+        os.getenv("GENERATION_MODEL_TEMPERATURE", "0.5")
     )
 
     # Application settings
-    MAX_TOKENS: int = int(os.getenv("MAX_TOKENS", "2000"))
-    MAX_HISTORY_ITEMS: int = int(os.getenv("MAX_HISTORY_ITEMS", "10"))
+    MAX_HISTORY_ITEMS: int = int(os.getenv("MAX_HISTORY_ITEMS", "3"))
 
     # Logging
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")

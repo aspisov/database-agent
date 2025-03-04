@@ -47,7 +47,7 @@ class ChatAgent(Agent):
 
         try:
             response = self.client.chat.completions.create(
-                model=settings.CHAT_MODEL,
+                model=settings.LOGIC_MODEL,
                 messages=[
                     {"role": "system", "content": CHAT_SYSTEM_PROMPT},
                     {"role": "user", "content": query},
@@ -56,9 +56,14 @@ class ChatAgent(Agent):
             answer = response.choices[0].message.content or ""
 
             return ChatResponse(
+                query=query,
                 message="Chat query processed successfully.",
                 answer=answer,
             )
         except Exception as e:
             self.logger.error(f"Error processing chat query: {e}")
-            return ChatResponse.error_response(query_type="Chat", error=str(e))
+            return ChatResponse.error_response(
+                query_type="Chat",
+                query=query,
+                error=str(e),
+            )
