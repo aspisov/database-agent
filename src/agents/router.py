@@ -39,6 +39,10 @@ class QueryClassification(BaseModel):
     confidence_score: float = Field(
         description="Confidence score between 0 and 1"
     )
+    updated_query: str | None = Field(
+        default=None,
+        description="Updated query based on chat history context when the query is a clarification of previous conversation",
+    )
 
 
 class QueryRouter:
@@ -122,10 +126,17 @@ class QueryRouter:
             f"Query classified as {classification.query_type} with confidence {classification.confidence_score}"
         )
 
+        # If we have an updated query based on context, use it instead
+        effective_query = classification.updated_query or query
+        if classification.updated_query:
+            self.logger.info(f"Using updated query: {effective_query}")
+
         # Route to the appropriate agent
         if classification.query_type == QueryType.TEXT2SQL:
-            return self.text2sql_agent.process_query(query, context)
+            return self.text2sql_agent.process_query(effective_query, context)
         elif classification.query_type == QueryType.VISUALIZATION:
-            return self.visualization_agent.process_query(query, context)
+            return self.visualization_agent.process_query(
+                effective_query, context
+            )
         else:
-            return self.chat_agent.process_query(query, context)
+            return self.chat_agent.process_query(effective_query, context)

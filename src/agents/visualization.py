@@ -8,12 +8,10 @@ visualization code based on natural language queries and query results.
 import logging
 import typing as tp
 from openai import OpenAI
-import pandas as pd
 from pydantic import BaseModel, Field
 
 from src.agents.base import Agent
-from src.models.response import AgentResponse, VisualizationResponse
-from src.agents.text2sql import Text2SQLAgent
+from src.models.response import AgentResponse
 from config.settings import settings
 from src.prompts.visualization_prompt import MODIFY_QUERY_SYSTEM_PROMPT
 

@@ -81,7 +81,6 @@ class Text2SQLAgent(Agent):
         self.logger.info(f"Verifying query: {query}")
 
         metadata = self.connector.get_text2sql_context()
-        history = context.get_conversation_history() if context else []
 
         try:
             response = self.client.beta.chat.completions.parse(
@@ -94,90 +93,67 @@ class Text2SQLAgent(Agent):
                     {
                         "role": "user",
                         "content": TEXT2SQL_VERIFY_USER_PROMPT.format(
-                            query=query, history=history, metadata=metadata
+                            query=query, metadata=metadata
                         ),
                     },
                 ],
                 response_format=VerificationResult,
             )
-
-            # Safely extract the parsed result, using a default if it's None
-            if (
-                response.choices
-                and response.choices[0].message
-                and hasattr(response.choices[0].message, "parsed")
-            ):
-                parsed_result = response.choices[0].message.parsed
-                if parsed_result is not None:
-                    verification_result = tp.cast(
-                        VerificationResult, parsed_result
-                    )
-                    self.logger.info(
-                        f"Verification result: {verification_result.result}"
-                    )
-                    return verification_result
-
-            # If we get here, something went wrong with parsing
-            self.logger.warning(
-                "Failed to parse verification result, using default"
-            )
-            return VerificationResult(
-                result="valid",
-                explanation="Verification parsing failed, proceeding with query.",
-            )
-
+            result = response.choices[0].message.parsed
+            if result is None:
+                return VerificationResult(
+                    result="invalid",
+                    explanation="Failed to parse verification result",
+                )
+            return result
         except Exception as e:
             self.logger.error(f"Error verifying query: {e}")
-            # Default to valid if verification fails, but log the error
             return VerificationResult(
-                result="valid",
-                explanation=f"Verification failed, proceeding with query. Error: {str(e)}",
+                result="invalid",
+                explanation="Error during verification",
             )
 
     def _generate_sql(
         self, query: str, context: Context | None = None
     ) -> SQLQuery:
         """
-        Generate a SQL query from a natural language query.
+        Generate an SQL query from a natural language query.
 
         Args:
             query: The user's natural language query.
+            context: Optional context information.
 
         Returns:
-            SQLQuery: The generated SQL query.
+            SQLQuery: The generated SQL query with chain of thought.
         """
+        self.logger.info(f"Generating SQL for query: {query}")
+
         metadata = self.connector.get_text2sql_context()
-        history = context.get_conversation_history() if context else []
-        response = self.client.beta.chat.completions.parse(
-            model=settings.TEXT2SQL_MODEL,
-            messages=[
-                {
-                    "role": "system",
-                    "content": TEXT2SQL_GENERATION_SYSTEM_PROMPT,
-                },
-                {
-                    "role": "user",
-                    "content": TEXT2SQL_GENERATION_USER_PROMPT.format(
-                        query=query, history=history, metadata=metadata
-                    ),
-                },
-            ],
-            response_format=SQLQuery,
-        )
 
-        # Safely extract the parsed result, using a default if it's None
-        if (
-            response.choices
-            and response.choices[0].message
-            and hasattr(response.choices[0].message, "parsed")
-        ):
-            parsed_result = response.choices[0].message.parsed
-            if parsed_result is not None:
-                sql_query = tp.cast(SQLQuery, parsed_result)
-                return sql_query
-
-        # If parsing fails, raise an exception to be caught by the process_query method
-        raise ValueError("Failed to parse SQL query response")
+        try:
+            response = self.client.beta.chat.completions.parse(
+                model=settings.TEXT2SQL_MODEL,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": TEXT2SQL_GENERATION_SYSTEM_PROMPT,
+                    },
+                    {
+                        "role": "user",
+                        "content": TEXT2SQL_GENERATION_USER_PROMPT.format(
+                            query=query, metadata=metadata
+                        ),
+                    },
+                ],
+                response_format=SQLQuery,
+            )
+            result = response.choices[0].message.parsed
+            if result is None:
+                raise ValueError("Failed to parse SQL query response")
+            return result
+        except Exception as e:
+            self.logger.error(f"Error generating SQL query: {e}")
+            raise
 
     def process_query(
         self, query: str, context: tp.Any | None = None
@@ -209,16 +185,18 @@ class Text2SQLAgent(Agent):
             if verification.result == "invalid":
                 return Text2SQLResponse(
                     success=False,
+                    query=query,
                     message=verification.explanation,
                     error="Invalid query",
                 )
 
             elif verification.result == "requires_clarification":
-                return Text2SQLResponse(
-                    success=False,
-                    message=verification.explanation,
-                    error=verification.clarification_question
-                    or "Clarification needed",
+                return Text2SQLResponse.clarification_response(
+                    query_type="Text2SQL",
+                    query=query,
+                    explanation=verification.explanation,
+                    question=verification.clarification_question
+                    or "Could you please clarify your query?",
                 )
 
             # If valid, proceed with generating and executing SQL
@@ -229,6 +207,7 @@ class Text2SQLAgent(Agent):
 
             return Text2SQLResponse(
                 success=True,
+                query=query,
                 message=sql_query.chain_of_thought,
                 sql_query=sql_query.sql_query,
                 query_results=query_results,
@@ -238,6 +217,7 @@ class Text2SQLAgent(Agent):
             self.logger.error(f"Error processing Text2SQL query: {e}")
             return Text2SQLResponse(
                 success=False,
+                query=query,
                 message="Error processing Text2SQL query",
                 error=str(e),
             )

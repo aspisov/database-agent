@@ -40,9 +40,27 @@ def display_response(response: AgentResponse) -> None:
     Args:
         response: The agent response to display.
     """
+    # Display the updated query if it's different from the original
+    if hasattr(response, "query") and response.query:
+        original_query = [
+            m["content"]
+            for m in st.session_state.messages
+            if m["role"] == "user"
+        ][-1]
+        if response.query != original_query:
+            with st.expander("Interpreted Query", expanded=True):
+                st.info(f'Your question was interpreted as: "{response.query}"')
+
     if not response.success:
-        st.error(f"Error: {response.error}")
-        return
+        if response.needs_clarification:
+            st.info(response.message)
+            st.warning(
+                f"**Clarification needed:** {response.clarification_question}"
+            )
+            return
+        else:
+            st.error(f"Error: {response.error}")
+            return
 
     if response.query_type == "Text2SQL":
         # Cast to the specific response type

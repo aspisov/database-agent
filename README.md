@@ -19,7 +19,6 @@ A conversational AI agent for PostgreSQL databases, inspired by Pandas AI. This 
 - **User-Friendly Interface:** Simple chat interface for interacting with your data
 
 - **PostgreSQL Integration:** Works directly with your PostgreSQL database
-
   
 
 ## Architecture

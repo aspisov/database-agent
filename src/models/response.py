@@ -17,21 +17,46 @@ class AgentResponse(BaseModel):
         default=True, description="Whether the agent operation was successful"
     )
     query_type: str = Field(description="The type of query that was processed")
+    query: str = Field(description="The user's query")
     message: str = Field(
         description="A human-readable message describing the result"
     )
     error: str | None = Field(
         default=None, description="Error message if the operation failed"
     )
+    needs_clarification: bool = Field(
+        default=False,
+        description="Whether clarification is needed from the user",
+    )
+    clarification_question: str | None = Field(
+        default=None, description="Question to ask the user for clarification"
+    )
 
     @classmethod
-    def error_response(cls, query_type: str, error: str) -> "AgentResponse":
+    def error_response(
+        cls, query_type: str, query: str, error: str
+    ) -> "AgentResponse":
         """Helper method to create an error response."""
         return cls(
             success=False,
             query_type=query_type,
+            query=query,
             message=f"Error: {error}",
             error=error,
+        )
+
+    @classmethod
+    def clarification_response(
+        cls, query_type: str, query: str, explanation: str, question: str
+    ) -> "AgentResponse":
+        """Helper method to create a clarification response."""
+        return cls(
+            success=False,
+            query_type=query_type,
+            query=query,
+            message=explanation,
+            needs_clarification=True,
+            clarification_question=question,
         )
 
 
@@ -48,19 +73,6 @@ class Text2SQLResponse(AgentResponse):
     query_results: dict[str, tp.Any] | None = Field(
         default=None,
         description="Dictionary with query results and metadata",
-    )
-
-
-class VisualizationResponse(AgentResponse):
-    """Response model specific to Visualization agent."""
-
-    query_type: str = "Visualization"
-    visualization_type: str | None = Field(
-        default=None,
-        description="The type of visualization generated (bar, line, etc.)",
-    )
-    image_data: str | None = Field(
-        default=None, description="Base64-encoded image data if applicable"
     )
 
 
