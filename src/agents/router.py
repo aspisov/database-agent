@@ -18,7 +18,10 @@ from src.agents.text2sql import Text2SQLAgent
 from src.agents.visualization import VisualizationAgent
 from src.models.response import AgentResponse
 from config.settings import settings
-from src.prompts.router_prompts import CLASSIFY_SYSTEM_PROMPT
+from src.prompts.router_prompts import (
+    CLASSIFY_SYSTEM_PROMPT,
+    CLASSIFY_USER_PROMPT,
+)
 
 
 class QueryType(str, Enum):
@@ -76,12 +79,19 @@ class QueryRouter:
         """
         self.logger.info(f"Classifying query: {query}")
 
+        history = context.get_conversation_history() if context else []
+
         try:
             response = self.client.beta.chat.completions.parse(
                 model=settings.ROUTER_MODEL,
                 messages=[
                     {"role": "system", "content": CLASSIFY_SYSTEM_PROMPT},
-                    {"role": "user", "content": query},
+                    {
+                        "role": "user",
+                        "content": CLASSIFY_USER_PROMPT.format(
+                            query=query, history=history
+                        ),
+                    },
                 ],
                 response_format=QueryClassification,
             )

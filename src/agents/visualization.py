@@ -42,23 +42,6 @@ class VisualizationAgent(Agent):
         self.client = OpenAI(api_key=settings.VISUALIZATION_MODEL)
         self.logger = logging.getLogger(__name__)
 
-    def modify_query(self, query: str) -> str:
-        response = self.client.beta.chat.completions.parse(
-            model=settings.LLM_MODEL,
-            messages=[
-                {"role": "system", "content": MODIFY_QUERY_SYSTEM_PROMPT},
-                {"role": "user", "content": f"Query: {query}"},
-            ],
-            response_format=ModifiedQuery,
-        )
-
-        text2sql_query = response.choices[0].message.parsed
-
-        return text2sql_query.query
-
-    def _generate_visualization_code(self, query: str, df: pd.DataFrame):
-        pass
-
     def process_query(
         self, query: str, context: tp.Any | None = None
     ) -> AgentResponse:
@@ -74,7 +57,7 @@ class VisualizationAgent(Agent):
         """
         self.logger.info(f"Processing visualization query: {query}")
 
-        text2sql_query = self.modify_query(query)
-        text2sql_agent = Text2SQLAgent()
-        sql_response = text2sql_agent.process_query(text2sql_query)
-        return sql_response
+        return AgentResponse.error_response(
+            query_type="Visualization",
+            error="Visualization agent is not implemented yet",
+        )

@@ -6,18 +6,16 @@ Conversational Database Agent.
 """
 
 import streamlit as st
-import pandas as pd
-import altair as alt
 import logging
 
 from src.agents.router import QueryRouter
 from src.models.response import (
     AgentResponse,
     Text2SQLResponse,
-    VisualizationResponse,
     ChatResponse,
 )
 from src.utils.dataframe_utils import query_results_to_dataframe
+from src.models.context import Context
 
 # Set up logging
 logging.basicConfig(
@@ -65,13 +63,14 @@ def display_response(response: AgentResponse) -> None:
             st.dataframe(df)
 
             # Add download button for CSV
-            csv = df.to_csv(index=False).encode("utf-8")
-            st.download_button(
-                label="Download data as CSV",
-                data=csv,
-                file_name="query_results.csv",
-                mime="text/csv",
-            )
+            # csv = df.to_csv(index=False).encode("utf-8")
+            # st.download_button(
+            #     label="Download data as CSV",
+            #     data=csv,
+            #     file_name="query_results.csv",
+            #     mime="text/csv",
+            #     key=f"download_csv_{len(st.session_state.messages)}",
+            # )
 
         st.success(f"Explanation: {response.message}")
 
@@ -85,6 +84,9 @@ def main():
     """Main function for the Streamlit app."""
     # Initialize the router
     router = QueryRouter()
+
+    if "context" not in st.session_state:
+        st.session_state.context = Context()
 
     # Sidebar
     with st.sidebar:
@@ -103,6 +105,17 @@ def main():
             """
         )
         st.markdown("---")
+
+        # Conversation History Panel
+        with st.expander("Conversation History", expanded=True):
+            conversation = st.session_state.context.get_conversation_history()
+            if conversation:
+                for msg in conversation:
+                    st.markdown(
+                        f"**{msg['role'].capitalize()}:** {msg['content']}"
+                    )
+            else:
+                st.markdown("No conversation history available.")
 
         # Additional controls could go here
         st.markdown("### Options")
@@ -132,7 +145,6 @@ def main():
     if prompt := st.chat_input("What would you like to know about your data?"):
         # Add user message to chat history
         st.session_state.messages.append({"role": "user", "content": prompt})
-
         # Display user message
         with st.chat_message("user"):
             st.markdown(prompt)
@@ -142,7 +154,9 @@ def main():
             with st.spinner("Thinking..."):
                 try:
                     # Get response from the agent
-                    response = router.route_query(prompt)
+                    response = router.route_query(
+                        prompt, st.session_state.context
+                    )
 
                     # Display the response
                     display_response(response)
@@ -159,6 +173,9 @@ def main():
                     st.session_state.messages.append(
                         {"role": "assistant", "content": f"Error: {str(e)}"}
                     )
+        st.session_state.context.add_message(
+            "user", prompt, response.query_type
+        )
 
 
 if __name__ == "__main__":
