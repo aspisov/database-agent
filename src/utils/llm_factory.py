@@ -1,9 +1,8 @@
 from langchain_openai import ChatOpenAI
 from langchain_gigachat import GigaChat
 from langchain_core.messages import HumanMessage, SystemMessage
-from pydantic import BaseModel, SecretStr
-from typing import Type, Dict, Any, Optional, Union
-import os
+from pydantic import BaseModel
+from typing import Type
 
 from config.settings import get_settings
 
@@ -18,35 +17,29 @@ class LLMFactory:
         if provider == "openai":
             # Create ChatOpenAI client with proper settings
             kwargs = {
+                "api_key": self.settings.openai.api_key,
                 "model": self.settings.openai.model,
                 "temperature": self.settings.openai.temperature,
-                "max_retries": self.settings.openai.max_retries,
+                "top_p": self.settings.openai.top_p,
+                "max_tokens": self.settings.openai.max_tokens,
+                "profanity_check": self.settings.openai.profanity_check,
+                "timeout": self.settings.openai.timeout,
             }
-
-            # Only add max_tokens if it's not None
-            if self.settings.openai.max_tokens is not None:
-                kwargs["max_tokens"] = self.settings.openai.max_tokens
-
-            # Use the API key from settings
-            if self.settings.openai.api_key:
-                kwargs["api_key"] = self.settings.openai.api_key
-
             return ChatOpenAI(**kwargs)
         elif provider == "gigachat":
             # Create GigaChat client with proper settings
             kwargs = {
+                "base_url": self.settings.gigachat.base_url,
+                "auth_url": self.settings.gigachat.auth_url,
+                "scope": self.settings.gigachat.scope,
+                "credentials": self.settings.gigachat.api_key,
                 "model": self.settings.gigachat.model,
                 "temperature": self.settings.gigachat.temperature,
+                "top_p": self.settings.gigachat.top_p,
+                "max_tokens": self.settings.gigachat.max_tokens,
+                "profanity_check": self.settings.gigachat.profanity_check,
+                "timeout": self.settings.gigachat.timeout,
             }
-
-            # Only add max_tokens if it's not None
-            if self.settings.gigachat.max_tokens is not None:
-                kwargs["max_tokens"] = self.settings.gigachat.max_tokens
-
-            # Use the API key from settings
-            if self.settings.gigachat.api_key:
-                kwargs["credentials"] = self.settings.gigachat.api_key
-
             return GigaChat(**kwargs)
         else:
             raise ValueError(f"Provider {provider} not supported")
@@ -55,7 +48,7 @@ class LLMFactory:
         self,
         system_prompt: str,
         user_prompt: str,
-        response_model: Optional[Type[BaseModel]] = None,
+        response_model: Type[BaseModel] | None = None,
     ):
         """
         Create a completion using the configured LLM.
@@ -78,4 +71,4 @@ class LLMFactory:
                 messages
             )
         else:
-            return self.llm.invoke(messages)
+            return self.llm.invoke(messages).content

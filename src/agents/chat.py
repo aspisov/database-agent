@@ -20,7 +20,7 @@ class ChatAgent(Agent):
     Chat Agent responsible for handling general conversational queries.
     """
 
-    def __init__(self, llm_provider: str = "openai"):
+    def __init__(self):
         """
         Initialize the Chat agent.
 
@@ -28,7 +28,7 @@ class ChatAgent(Agent):
             llm_provider: The LLM provider to use ("openai" or "gigachat")
         """
         self.settings = get_settings()
-        self.llm = LLMFactory(provider=llm_provider)
+        self.llm = LLMFactory(provider=self.settings.default_llm_provider)
 
     def process_query(
         self, query: str, context: tp.Any | None = None
@@ -60,7 +60,7 @@ class ChatAgent(Agent):
             )
         except Exception as e:
             logging.error(f"Error processing chat query: {e}")
-            return ChatResponse.error_response(
+            return AgentResponse.error_response(
                 query_type="Chat",
                 query=query,
                 error=str(e),

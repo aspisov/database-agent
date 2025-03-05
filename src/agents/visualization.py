@@ -30,7 +30,7 @@ class VisualizationAgent(Agent):
     data based on natural language descriptions.
     """
 
-    def __init__(self, llm_provider: str = "openai"):
+    def __init__(self):
         """
         Initialize the visualization agent.
 
@@ -38,7 +38,7 @@ class VisualizationAgent(Agent):
             llm_provider: The LLM provider to use ("openai" or "gigachat")
         """
         self.settings = get_settings()
-        self.llm = LLMFactory(provider=llm_provider)
+        self.llm = LLMFactory(provider=self.settings.default_llm_provider)
         self.logger = logging.getLogger(__name__)
 
     def process_query(

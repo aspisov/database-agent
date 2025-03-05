@@ -193,19 +193,37 @@ class DatabaseConnector:
         tables = self.get_tables()
 
         for table_name in tables:
+            # Get table comment
+            table_comment = None
+            try:
+                comment_info = self._inspector.get_table_comment(
+                    table_name, schema=self.schema
+                )
+                if comment_info and "text" in comment_info:
+                    table_comment = comment_info["text"]
+            except (NotImplementedError, Exception) as e:
+                self.logger.debug(
+                    f"Could not retrieve comment for table {table_name}: {str(e)}"
+                )
+
             table_info = {
                 "name": table_name,
                 "columns": [],
-                "primary_keys": self._inspector.get_pk_constraint(table_name)[
-                    "constrained_columns"
-                ],
-                "indexes": self._inspector.get_indexes(table_name),
+                "primary_keys": self._inspector.get_pk_constraint(
+                    table_name, schema=self.schema
+                )["constrained_columns"],
+                "indexes": self._inspector.get_indexes(
+                    table_name, schema=self.schema
+                ),
                 "sample_data": self.get_sample_data(table_name, 3),
                 "row_count": self.get_row_count(table_name),
+                "comment": table_comment,
             }
 
             # Get column information
-            for column in self._inspector.get_columns(table_name):
+            for column in self._inspector.get_columns(
+                table_name, schema=self.schema
+            ):
                 column_info = {
                     "name": column["name"],
                     "type": str(column["type"]),
@@ -215,6 +233,7 @@ class DatabaseConnector:
                         if column["default"] is not None
                         else None
                     ),
+                    "comment": column.get("comment"),
                 }
 
                 # Check if column is part of primary key
@@ -239,7 +258,9 @@ class DatabaseConnector:
         relationships = []
 
         for table_name in self.get_tables():
-            for fk in self._inspector.get_foreign_keys(table_name):
+            for fk in self._inspector.get_foreign_keys(
+                table_name, schema=self.schema
+            ):
                 relationship = {
                     "source_table": table_name,
                     "source_column": fk["constrained_columns"][0],
@@ -322,15 +343,26 @@ class DatabaseConnector:
         for table in schema_info["tables"]:
             table_desc = [
                 f"Table: {table['name']}",
-                f"Columns:",
             ]
+
+            # Add table comment if available
+            if table.get("comment"):
+                table_desc.append(f"Description: {table['comment']}")
+
+            table_desc.append(f"Columns:")
 
             for col in table["columns"]:
                 pk_marker = "PK" if col.get("is_primary_key") else ""
                 nullable = "NULL" if col["nullable"] else "NOT NULL"
-                table_desc.append(
+                column_line = (
                     f"  - {col['name']} ({col['type']}) {pk_marker} {nullable}"
                 )
+
+                # Add column comment if available
+                if col.get("comment"):
+                    column_line += f" - {col['comment']}"
+
+                table_desc.append(column_line)
 
             if table["sample_data"]:
                 table_desc.append(

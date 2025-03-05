@@ -11,7 +11,6 @@ from src.utils.llm_factory import LLMFactory
 from pydantic import BaseModel, Field
 from enum import Enum
 
-from src.agents.base import Agent
 from src.agents.chat import ChatAgent
 from src.agents.text2sql import Text2SQLAgent
 from src.agents.visualization import VisualizationAgent
@@ -54,7 +53,7 @@ class QueryRouter:
         """Initialize the QueryRouter with its agents."""
         self.settings = get_settings()
 
-        self.llm = LLMFactory(provider="openai")
+        self.llm = LLMFactory(provider=self.settings.default_llm_provider)
 
         # Initialize specialized agents
         self.chat_agent = ChatAgent()

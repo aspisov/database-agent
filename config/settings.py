@@ -11,9 +11,11 @@ def setup_logging():
 
 
 class LLMSettings(BaseModel):
-    temperature: float = 0.0
-    max_tokens: int | None = None
-    max_retries: int = 3
+    temperature: float = 1
+    top_p: float = 0.6
+    max_tokens: int | None = 32000
+    profanity_check: bool = False
+    timeout: int = 600
 
 
 class OpenAISettings(LLMSettings):
@@ -22,6 +24,13 @@ class OpenAISettings(LLMSettings):
 
 
 class GigaChatSettings(LLMSettings):
+    base_url: str = Field(
+        default_factory=lambda: os.getenv("GIGACHAT_BASE_URL")
+    )
+    auth_url: str = Field(
+        default_factory=lambda: os.getenv("GIGACHAT_AUTH_URL")
+    )
+    scope: str = Field(default_factory=lambda: os.getenv("GIGACHAT_SCOPE"))
     api_key: str = Field(default_factory=lambda: os.getenv("GIGACHAT_API_KEY"))
     model: str = "GigaChat-Max"
 
@@ -40,7 +49,7 @@ class Settings(BaseModel):
     database: DatabaseSettings = Field(default_factory=DatabaseSettings)
     openai: OpenAISettings = Field(default_factory=OpenAISettings)
     gigachat: GigaChatSettings = Field(default_factory=GigaChatSettings)
-    allow_manipulation: bool = bool(os.getenv("ALLOW_MANIPULATION", "True"))
+    allow_manipulation: bool = bool(os.getenv("ALLOW_MANIPULATION", "False"))
     default_llm_provider: str = os.getenv("DEFAULT_LLM_PROVIDER", "openai")
 
 
