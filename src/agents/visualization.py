@@ -6,14 +6,14 @@ visualization code based on natural language queries and query results.
 """
 
 import logging
-import typing as tp
-from openai import OpenAI
+from typing import Any
 from pydantic import BaseModel, Field
 
 from src.agents.base import Agent
 from src.models.response import AgentResponse
-from config.settings import settings
+from config.settings import get_settings
 from src.prompts.visualization_prompt import MODIFY_QUERY_SYSTEM_PROMPT
+from src.utils.llm_factory import LLMFactory
 
 
 class ModifiedQuery(BaseModel):
@@ -30,18 +30,19 @@ class VisualizationAgent(Agent):
     data based on natural language descriptions.
     """
 
-    def __init__(self):
+    def __init__(self, llm_provider: str = "openai"):
         """
         Initialize the visualization agent.
 
         Args:
-            model: The LLM model to use for visualization code generation.
+            llm_provider: The LLM provider to use ("openai" or "gigachat")
         """
-        self.client = OpenAI(api_key=settings.GENERATION_MODEL)
+        self.settings = get_settings()
+        self.llm = LLMFactory(provider=llm_provider)
         self.logger = logging.getLogger(__name__)
 
     def process_query(
-        self, query: str, context: tp.Any | None = None
+        self, query: str, context: Any | None = None
     ) -> AgentResponse:
         """
         Process a visualization query and generate a visualization description.

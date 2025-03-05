@@ -1,45 +1,51 @@
+from functools import lru_cache
+import logging
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
+from pydantic import BaseModel, Field
 
 
-class Settings:
+def setup_logging():
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    )
+
+
+class LLMSettings(BaseModel):
+    temperature: float = 0.0
+    max_tokens: int | None = None
+    max_retries: int = 3
+
+
+class OpenAISettings(LLMSettings):
+    api_key: str = Field(default_factory=lambda: os.getenv("OPENAI_API_KEY"))
+    model: str = "gpt-4o-mini"
+
+
+class GigaChatSettings(LLMSettings):
+    api_key: str = Field(default_factory=lambda: os.getenv("GIGACHAT_API_KEY"))
+    model: str = "GigaChat-Max"
+
+
+class DatabaseSettings(BaseModel):
+    host: str = os.getenv("DB_HOST", "localhost")
+    port: int = int(os.getenv("DB_PORT", 5432))
+    user: str = os.getenv("DB_USER", "postgres")
+    password: str = os.getenv("DB_PASSWORD", "postgres")
+    name: str = os.getenv("DB_NAME", "postgres")
+    schema: str = os.getenv("DB_SCHEMA", "public")
+
+
+class Settings(BaseModel):
     # Database
-    DB_HOST: str = os.getenv("DB_HOST", "localhost")
-    DB_PORT: int = int(os.getenv("DB_PORT", 5432))
-    DB_USER: str = os.getenv("DB_USER", "postgres")
-    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "postgres")
-    DB_NAME: str = os.getenv("DB_NAME", "postgres")
-    DB_SCHEMA: str = os.getenv("DB_SCHEMA", "public")
-    ALLOW_MANIPULATION: bool = bool(os.getenv("ALLOW_MANIPULATION", "True"))
-
-    # OpenAI
-    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "your_api_key_here")
-
-    # Default LLM settings
-    LOGIC_MODEL: str = os.getenv("LLM_MODEL", "gpt-4o-mini")
-    GENERATION_MODEL: str = os.getenv("GENERATION_MODEL", "gpt-4o-mini")
-    LOGIC_MODEL_TEMPERATURE: float = float(
-        os.getenv("LOGIC_MODEL_TEMPERATURE", "1")
-    )
-    GENERATION_MODEL_TEMPERATURE: float = float(
-        os.getenv("GENERATION_MODEL_TEMPERATURE", "0.5")
-    )
-
-    # Application settings
-    MAX_HISTORY_ITEMS: int = int(os.getenv("MAX_HISTORY_ITEMS", "3"))
-
-    # Logging
-    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
-
-    # Security
-    ENABLE_SQL_VALIDATION: bool = os.getenv(
-        "ENABLE_SQL_VALIDATION", "True"
-    ).lower() in ("true", "1", "t")
-    SQL_QUERY_TIMEOUT: int = int(
-        os.getenv("SQL_QUERY_TIMEOUT", "30")
-    )  # Seconds
+    database: DatabaseSettings = Field(default_factory=DatabaseSettings)
+    openai: OpenAISettings = Field(default_factory=OpenAISettings)
+    gigachat: GigaChatSettings = Field(default_factory=GigaChatSettings)
+    allow_manipulation: bool = bool(os.getenv("ALLOW_MANIPULATION", "True"))
+    default_llm_provider: str = os.getenv("DEFAULT_LLM_PROVIDER", "openai")
 
 
-settings = Settings()
+@lru_cache
+def get_settings():
+    settings = Settings()
+    setup_logging()
+    return settings

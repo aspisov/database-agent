@@ -20,7 +20,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker, Session
 
-from config.settings import settings
+from config.settings import get_settings
 
 
 class DatabaseConnector:
@@ -38,12 +38,13 @@ class DatabaseConnector:
             password: Database password
             schema: Database schema
         """
-        self.host = settings.DB_HOST
-        self.port = settings.DB_PORT
-        self.dbname = settings.DB_NAME
-        self.user = settings.DB_USER
-        self.password = settings.DB_PASSWORD
-        self.schema = settings.DB_SCHEMA
+        self.settings = get_settings()
+        self.host = self.settings.database.host
+        self.port = self.settings.database.port
+        self.dbname = self.settings.database.name
+        self.user = self.settings.database.user
+        self.password = self.settings.database.password
+        self.schema = self.settings.database.schema
         self.logger = logging.getLogger(__name__)
 
         # SQLAlchemy components
@@ -82,7 +83,6 @@ class DatabaseConnector:
                 connection_string = f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.dbname}"
                 self._engine = create_engine(
                     connection_string,
-                    # echo=settings.DB_ECHO_SQL,
                     pool_pre_ping=True,
                     pool_recycle=3600,
                 )

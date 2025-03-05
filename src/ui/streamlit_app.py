@@ -16,13 +16,10 @@ from src.models.response import (
 )
 from src.utils.dataframe_utils import query_results_to_dataframe
 from src.models.context import Context
+from config.settings import get_settings
 
-# Set up logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
+# Get settings
+settings = get_settings()
 
 # Set page config
 st.set_page_config(
@@ -183,17 +180,17 @@ def main():
                     st.session_state.messages.append(
                         {"role": "assistant", "content": response}
                     )
+                    st.session_state.context.add_message(
+                        "user", prompt, response.query_type
+                    )
 
                 except Exception as e:
-                    logger.error(f"Error processing query: {e}", exc_info=True)
+                    logging.error(f"Error processing query: {e}", exc_info=True)
                     st.error(f"Something went wrong: {str(e)}")
                     # Add error message to chat history
                     st.session_state.messages.append(
                         {"role": "assistant", "content": f"Error: {str(e)}"}
                     )
-        st.session_state.context.add_message(
-            "user", prompt, response.query_type
-        )
 
 
 if __name__ == "__main__":

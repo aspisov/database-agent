@@ -7,17 +7,16 @@ and routing them to the appropriate specialized agent (Text2SQL, Visualization, 
 
 import logging
 import typing as tp
-from openai import OpenAI
+from src.utils.llm_factory import LLMFactory
 from pydantic import BaseModel, Field
 from enum import Enum
 
-from config import settings
 from src.agents.base import Agent
 from src.agents.chat import ChatAgent
 from src.agents.text2sql import Text2SQLAgent
 from src.agents.visualization import VisualizationAgent
 from src.models.response import AgentResponse
-from config.settings import settings
+from config.settings import get_settings
 from src.prompts.router_prompts import (
     CLASSIFY_SYSTEM_PROMPT,
     CLASSIFY_USER_PROMPT,
@@ -53,9 +52,9 @@ class QueryRouter:
 
     def __init__(self):
         """Initialize the QueryRouter with its agents."""
-        self.logger = logging.getLogger(__name__)
+        self.settings = get_settings()
 
-        self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        self.llm = LLMFactory(provider="openai")
 
         # Initialize specialized agents
         self.chat_agent = ChatAgent()
@@ -81,30 +80,21 @@ class QueryRouter:
         Returns:
             QueryClassification: The classified query type with confidence score.
         """
-        self.logger.info(f"Classifying query: {query}")
+        logging.info(f"Classifying query: {query}")
 
         history = context.get_conversation_history() if context else []
 
         try:
-            response = self.client.beta.chat.completions.parse(
-                model=settings.LOGIC_MODEL,
-                messages=[
-                    {"role": "system", "content": CLASSIFY_SYSTEM_PROMPT},
-                    {
-                        "role": "user",
-                        "content": CLASSIFY_USER_PROMPT.format(
-                            query=query, history=history
-                        ),
-                    },
-                ],
-                response_format=QueryClassification,
+            response = self.llm.create_completion(
+                system_prompt=CLASSIFY_SYSTEM_PROMPT,
+                user_prompt=CLASSIFY_USER_PROMPT.format(
+                    query=query, history=history
+                ),
+                response_model=QueryClassification,
             )
-            return (
-                response.choices[0].message.parsed
-                or self.default_classification
-            )
+            return response or self.default_classification  # type: ignore
         except Exception as e:
-            self.logger.error(f"Error classifying query: {e}")
+            logging.error(f"Error classifying query: {e}")
             return self.default_classification
 
     def route_query(
@@ -122,14 +112,14 @@ class QueryRouter:
         """
         # Classify the query
         classification = self.classify_query(query, context)
-        self.logger.info(
+        logging.info(
             f"Query classified as {classification.query_type} with confidence {classification.confidence_score}"
         )
 
         # If we have an updated query based on context, use it instead
         effective_query = classification.updated_query or query
         if classification.updated_query:
-            self.logger.info(f"Using updated query: {effective_query}")
+            logging.info(f"Using updated query: {effective_query}")
 
         # Route to the appropriate agent
         if classification.query_type == QueryType.TEXT2SQL:
