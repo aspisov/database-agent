@@ -7,8 +7,8 @@ This module defines the base Agent class that all specialized agents inherit fro
 from abc import ABC, abstractmethod
 import typing as tp
 
-from src.models.context import Context
-from src.models.response import AgentResponse
+from models.context import Context
+from models.response import AgentResponse
 
 
 class Agent(ABC):

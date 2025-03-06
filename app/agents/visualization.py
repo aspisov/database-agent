@@ -9,11 +9,11 @@ import logging
 from typing import Any
 from pydantic import BaseModel, Field
 
-from src.agents.base import Agent
-from src.models.response import AgentResponse
+from agents.base import Agent
+from models.response import AgentResponse
 from config.settings import get_settings
-from src.prompts.visualization_prompt import MODIFY_QUERY_SYSTEM_PROMPT
-from src.utils.llm_factory import LLMFactory
+from prompts.prompt_manager import PromptManager
+from utils.llm_factory import LLMFactory
 
 
 class ModifiedQuery(BaseModel):
@@ -45,19 +45,17 @@ class VisualizationAgent(Agent):
         self, query: str, context: Any | None = None
     ) -> AgentResponse:
         """
-        Process a visualization query and generate a visualization description.
+        Process a visualization query and modify it for the Text2SQL agent.
 
         Args:
-            query: The user's natural language query
-            context: Optional context information (e.g., query results)
+            query: The user's visualization request
+            context: Optional context for the query
 
         Returns:
-            AgentResponse: A standardized response with visualization details
+            AgentResponse containing the modified query
         """
-        self.logger.info(f"Processing visualization query: {query}")
-
         return AgentResponse.error_response(
             query_type="Visualization",
             query=query,
-            error="Visualization agent is not implemented yet",
+            error="Not implemented",
         )

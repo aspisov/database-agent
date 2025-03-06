@@ -8,14 +8,14 @@ Conversational Database Agent.
 import streamlit as st
 import logging
 
-from src.agents.router import QueryRouter
-from src.models.response import (
+from agents.router import QueryRouter
+from models.response import (
     AgentResponse,
     Text2SQLResponse,
     ChatResponse,
 )
-from src.utils.dataframe_utils import query_results_to_dataframe
-from src.models.context import Context
+from utils.dataframe_utils import query_results_to_dataframe
+from models.context import Context
 from config.settings import get_settings
 
 # Get settings

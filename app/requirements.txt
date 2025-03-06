@@ -5,3 +5,6 @@ langchain-openai
 langchain-gigachat
 sqlalchemy
 streamlit
+dotenv
+jinja2
+python-frontmatter

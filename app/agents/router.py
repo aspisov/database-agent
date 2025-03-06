@@ -7,19 +7,16 @@ and routing them to the appropriate specialized agent (Text2SQL, Visualization, 
 
 import logging
 import typing as tp
-from src.utils.llm_factory import LLMFactory
+from utils.llm_factory import LLMFactory
 from pydantic import BaseModel, Field
 from enum import Enum
 
-from src.agents.chat import ChatAgent
-from src.agents.text2sql import Text2SQLAgent
-from src.agents.visualization import VisualizationAgent
-from src.models.response import AgentResponse
+from agents.chat import ChatAgent
+from agents.text2sql import Text2SQLAgent
+from agents.visualization import VisualizationAgent
+from models.response import AgentResponse
 from config.settings import get_settings
-from src.prompts.router_prompts import (
-    CLASSIFY_SYSTEM_PROMPT,
-    CLASSIFY_USER_PROMPT,
-)
+from prompts.prompt_manager import PromptManager
 
 
 class QueryType(str, Enum):
@@ -62,38 +59,49 @@ class QueryRouter:
 
         # Default classification
         self.default_classification = QueryClassification(
-            query_type=QueryType.CHAT, confidence_score=1.0
+            query_type=QueryType.CHAT, confidence_score=1.0, updated_query=None
         )
 
     def classify_query(
         self, query: str, context: tp.Any | None = None
     ) -> QueryClassification:
         """
-        Classify a user query into one of the predefined types.
-        This is a simplified mock implementation.
+        Classify user query to determine which agent should handle it.
 
         Args:
-            query: The user's natural language query.
-            context: Optional context information.
+            query: The user's query
+            context: Optional context for the query
 
         Returns:
-            QueryClassification: The classified query type with confidence score.
+            Classification result with query type and confidence score
         """
-        logging.info(f"Classifying query: {query}")
-
-        history = context.get_conversation_history() if context else []
+        # Format chat history as string if provided in context
+        history = ""
+        if (
+            context
+            and hasattr(context, "chat_history")
+            and context.chat_history
+        ):
+            history = "\n".join(
+                [f"{msg.role}: {msg.content}" for msg in context.chat_history]
+            )
 
         try:
             response = self.llm.create_completion(
-                system_prompt=CLASSIFY_SYSTEM_PROMPT,
-                user_prompt=CLASSIFY_USER_PROMPT.format(
+                system_prompt=PromptManager.get_router_system_prompt(),
+                user_prompt=PromptManager.get_router_user_prompt(
                     query=query, history=history
                 ),
                 response_model=QueryClassification,
             )
-            return response or self.default_classification  # type: ignore
+            return (
+                QueryClassification(**response.__dict__)
+                if response
+                else self.default_classification
+            )
         except Exception as e:
-            logging.error(f"Error classifying query: {e}")
+            logging.error(f"Error in query classification: {e}")
+            # Default to Chat if classification fails
             return self.default_classification
 
     def route_query(

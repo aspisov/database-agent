@@ -10,20 +10,15 @@ available schema, then generating and executing the appropriate SQL.
 import logging
 from typing import Any
 from enum import Enum
-from pprint import pprint
-from src.agents.base import Agent
-from src.database.connector import DatabaseConnector
-from src.models.response import AgentResponse, Text2SQLResponse
-from src.models.context import Context
-from config.settings import get_settings
 from pydantic import BaseModel, Field
-from src.prompts.text2sql_prompts import (
-    TEXT2SQL_GENERATION_SYSTEM_PROMPT,
-    TEXT2SQL_GENERATION_USER_PROMPT,
-    TEXT2SQL_VERIFY_PROMPT,
-    TEXT2SQL_VERIFY_USER_PROMPT,
-)
-from src.utils.llm_factory import LLMFactory
+
+from agents.base import Agent
+from database.connector import DatabaseConnector
+from models.response import AgentResponse, Text2SQLResponse
+from models.context import Context
+from config.settings import get_settings
+from prompts.prompt_manager import PromptManager
+from utils.llm_factory import LLMFactory
 
 
 class SQLQuery(BaseModel):
@@ -90,83 +85,68 @@ class Text2SQLAgent(Agent):
         self, query: str, context: Context | None = None
     ) -> VerificationResult:
         """
-        Verify if the natural language query can be answered with the available database schema.
-
-        This method checks if:
-        - The query refers to tables and columns that exist in the database
-        - The required information is available in the schema
-        - The user's intent is clear enough to generate SQL
+        Verifies if the user query can be answered with the available database schema.
 
         Args:
-            query: The user's natural language query
-            context: Optional conversation context for resolving ambiguous references
+            query: The natural language query to verify
+            context: Optional context containing database connection and schema
 
         Returns:
-            VerificationResult: Structured result with validation status and explanation
+            VerificationResult with validation status and explanation
         """
-        self.logger.info(f"Verifying query: '{query}'")
-
-        # Get database schema and metadata
-        metadata = self.connector.get_text2sql_context()
-
         try:
-            # Type annotation to help with type checking
+            logging.info(f"Verifying query: {query}")
+            connector = DatabaseConnector()
+            metadata = connector.get_text2sql_context()
+
             result: Any = self.llm.create_completion(
-                system_prompt=TEXT2SQL_VERIFY_PROMPT,
-                user_prompt=TEXT2SQL_VERIFY_USER_PROMPT.format(
-                    query=query, metadata=metadata
+                system_prompt=PromptManager.get_text2sql_verify_prompt(),
+                user_prompt=PromptManager.get_text2sql_verify_user_prompt(
+                    query=query, metadata=str(metadata)
                 ),
                 response_model=VerificationResult,
             )
 
-            if result is None:
+            # Ensure we have a valid result
+            if not result:
                 return VerificationResult(
                     validation_status=QueryValidationType.INVALID,
-                    explanation="Failed to verify query due to language model error",
+                    explanation="Failed to verify query",
+                    clarification_question=None,
                 )
 
-            # Return the verification result
-            return result  # type: ignore
+            logging.info(f"Verification result: {result.validation_status}")
+            return result
         except Exception as e:
-            self.logger.error(f"Error verifying query: {e}")
+            logging.error(f"Error in query verification: {e}")
             return VerificationResult(
                 validation_status=QueryValidationType.INVALID,
-                explanation=f"Verification error: {e}",
+                explanation=f"Error during verification: {str(e)}",
+                clarification_question=None,
             )
 
     def _generate_sql(
         self, query: str, context: Context | None = None
     ) -> SQLQuery:
         """
-        Generate a SQL query from a validated natural language query.
-
-        This method:
-        1. Uses a language model to translate the natural language to SQL
-        2. Ensures the generated SQL is compatible with PostgreSQL
-        3. Returns both the query and explanation for transparency
+        Generates SQL from the user's natural language query.
 
         Args:
-            query: The user's validated natural language query
-            context: Optional conversation context for resolving references
+            query: The natural language query to convert to SQL
+            context: Optional context containing database connection and schema
 
         Returns:
-            SQLQuery: Structured result with SQL query, reasoning process and explanation
-
-        Raises:
-            ValueError: If SQL generation fails or returns invalid SQL
+            SQLQuery with the generated SQL and explanation
         """
-        self.logger.info(f"Generating SQL for query: '{query}'")
-
-        # Get database schema and metadata
-        metadata = self.connector.get_text2sql_context()
-        pprint(metadata)
-
         try:
-            # Type annotation to help with type checking
+            logging.info(f"Generating SQL for query: {query}")
+            connector = DatabaseConnector()
+            metadata = connector.get_text2sql_context()
+
             result: Any = self.llm.create_completion(
-                system_prompt=TEXT2SQL_GENERATION_SYSTEM_PROMPT,
-                user_prompt=TEXT2SQL_GENERATION_USER_PROMPT.format(
-                    query=query, metadata=metadata
+                system_prompt=PromptManager.get_text2sql_generation_system_prompt(),
+                user_prompt=PromptManager.get_text2sql_generation_user_prompt(
+                    query=query, metadata=str(metadata)
                 ),
                 response_model=SQLQuery,
             )

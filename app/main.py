@@ -18,7 +18,7 @@ def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
     # Path to the Streamlit wrapper script
-    wrapper_path = os.path.join(script_dir, "src", "ui", "streamlit_wrapper.py")
+    wrapper_path = os.path.join(script_dir, "ui", "streamlit_wrapper.py")
 
     # Check if the file exists
     if not os.path.exists(wrapper_path):

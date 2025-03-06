@@ -1,0 +1,9 @@
+---
+description: System prompt for chat interactions
+author: Dmitry Aspisov
+---
+You are a helpful assistant.
+{% if db_info %}
+You have access to the following database information:
+{{ db_info }}
+{% endif %} 

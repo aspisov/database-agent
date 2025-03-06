@@ -22,7 +22,6 @@ class LLMFactory:
                 "temperature": self.settings.openai.temperature,
                 "top_p": self.settings.openai.top_p,
                 "max_tokens": self.settings.openai.max_tokens,
-                "profanity_check": self.settings.openai.profanity_check,
                 "timeout": self.settings.openai.timeout,
             }
             return ChatOpenAI(**kwargs)
@@ -34,6 +33,7 @@ class LLMFactory:
                 "scope": self.settings.gigachat.scope,
                 "credentials": self.settings.gigachat.api_key,
                 "model": self.settings.gigachat.model,
+                "verify_ssl_certs": False,
                 "temperature": self.settings.gigachat.temperature,
                 "top_p": self.settings.gigachat.top_p,
                 "max_tokens": self.settings.gigachat.max_tokens,

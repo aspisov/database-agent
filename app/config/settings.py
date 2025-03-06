@@ -2,6 +2,9 @@ from functools import lru_cache
 import logging
 import os
 from pydantic import BaseModel, Field
+import dotenv
+
+dotenv.load_dotenv()
 
 
 def setup_logging():
@@ -13,8 +16,7 @@ def setup_logging():
 class LLMSettings(BaseModel):
     temperature: float = 1
     top_p: float = 0.6
-    max_tokens: int | None = 32000
-    profanity_check: bool = False
+    max_tokens: int | None = None
     timeout: int = 600
 
 
@@ -33,6 +35,8 @@ class GigaChatSettings(LLMSettings):
     scope: str = Field(default_factory=lambda: os.getenv("GIGACHAT_SCOPE"))
     api_key: str = Field(default_factory=lambda: os.getenv("GIGACHAT_API_KEY"))
     model: str = "GigaChat-Max"
+    max_tokens: int | None = 32000
+    profanity_check: bool = False
 
 
 class DatabaseSettings(BaseModel):

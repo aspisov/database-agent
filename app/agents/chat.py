@@ -9,10 +9,10 @@ import logging
 import typing as tp
 
 from config.settings import get_settings
-from src.agents.base import Agent
-from src.models.response import AgentResponse, ChatResponse
-from src.prompts.chat_prompts import CHAT_SYSTEM_PROMPT
-from src.utils.llm_factory import LLMFactory
+from agents.base import Agent
+from models.response import AgentResponse, ChatResponse
+from prompts.prompt_manager import PromptManager
+from utils.llm_factory import LLMFactory
 
 
 class ChatAgent(Agent):
@@ -47,7 +47,8 @@ class ChatAgent(Agent):
 
         try:
             response = self.llm.create_completion(
-                system_prompt=CHAT_SYSTEM_PROMPT, user_prompt=query
+                system_prompt=PromptManager.get_chat_system_prompt(),
+                user_prompt=query,
             )
 
             # Convert response to string if it's not already
