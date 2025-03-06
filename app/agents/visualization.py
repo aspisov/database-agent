@@ -6,6 +6,7 @@ visualization code based on natural language queries and query results.
 """
 
 import logging
+import traceback
 from typing import Any
 
 from config.settings import get_settings

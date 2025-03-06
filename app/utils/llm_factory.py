@@ -1,10 +1,10 @@
-from langchain_openai import ChatOpenAI
-from langchain_gigachat import GigaChat
-from langchain_core.messages import HumanMessage, SystemMessage
-from pydantic import BaseModel
 from typing import Type
 
 from config.settings import get_settings
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_gigachat.chat_models import GigaChat
+from langchain_openai import ChatOpenAI
+from pydantic import BaseModel
 
 
 class LLMFactory:
@@ -15,7 +15,6 @@ class LLMFactory:
 
     def _initialize_llm(self, provider: str):
         if provider == "openai":
-            # Create ChatOpenAI client with proper settings
             kwargs = {
                 "api_key": self.settings.openai.api_key,
                 "model": self.settings.openai.model,
@@ -26,7 +25,6 @@ class LLMFactory:
             }
             return ChatOpenAI(**kwargs)
         elif provider == "gigachat":
-            # Create GigaChat client with proper settings
             kwargs = {
                 "scope": self.settings.gigachat.scope,
                 "credentials": self.settings.gigachat.api_key,

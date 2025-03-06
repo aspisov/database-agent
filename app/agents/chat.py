@@ -6,6 +6,7 @@ queries that don't require SQL or visualizations.
 """
 
 import logging
+import traceback
 import typing as tp
 
 from config.settings import get_settings
@@ -62,6 +63,7 @@ class ChatAgent(Agent):
             )
         except Exception as e:
             logging.error(f"Error processing chat query: {e}")
+            logging.error(traceback.format_exc())
             return AgentResponse.error_response(
                 query_type="Chat",
                 query=query,

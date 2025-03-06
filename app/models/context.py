@@ -1,16 +1,14 @@
-import typing as tp
+from typing import Any
 
 
 class Context:
     def __init__(self):
         # Chat and query history
-        self.messages: list[dict[str, tp.Any]] = (
-            []
-        )  # [{role, content, timestamp}]
+        self.messages: list[dict[str, Any]] = []  # [{role, content, timestamp}]
 
     def add_message(
         self, role: str, content: str, query_type: str | None = None
-    ) -> dict[str, tp.Any]:
+    ) -> dict[str, Any]:
         """Add a message to the history with timestamp"""
         message = {
             "role": role,
@@ -23,6 +21,6 @@ class Context:
 
     def get_conversation_history(
         self, max_messages: int = 3
-    ) -> list[dict[str, tp.Any]]:
+    ) -> list[dict[str, Any]]:
         """Get recent conversation for context"""
         return self.messages[-max_messages:]

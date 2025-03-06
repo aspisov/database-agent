@@ -78,7 +78,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 3. Install dependencies
 ```bash
-pip install -r requirements.txt
+pip install -r app/requirements.txt
 ```
 
 4. Set up your environment variables by creating a `.env` file:
@@ -113,7 +113,7 @@ The Streamlit UI will open in your default web browser.
 You can also run the application using Docker:
 
 ```bash
-docker-compose up -d
+docker-compose -f docker/docker-compose.yml up -d
 ```
 
 This will start both the application and a PostgreSQL database.

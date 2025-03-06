@@ -9,3 +9,6 @@ dotenv
 jinja2
 python-frontmatter
 instructor
+psycopg2
+psycopg2-binary
+langchain-ollama

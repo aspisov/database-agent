@@ -22,7 +22,7 @@ class LLMSettings(BaseModel):
 
 
 class OpenAISettings(LLMSettings):
-    api_key: str = Field(default_factory=lambda: os.getenv("OPENAI_API_KEY"))
+    api_key: str | None = Field(default_factory=lambda: os.getenv("OPENAI_API_KEY"))
     model: str = "gpt-4o-mini"
 
 
@@ -30,7 +30,7 @@ class GigaChatSettings(LLMSettings):
     scope: str = Field(
         default_factory=lambda: os.getenv("GIGACHAT_SCOPE", "GIGACHAT_API_PERS")
     )
-    api_key: str = Field(default_factory=lambda: os.getenv("GIGACHAT_API_KEY"))
+    api_key: str | None = Field(default_factory=lambda: os.getenv("GIGACHAT_API_KEY"))
     model: str = "GigaChat-Max"
     max_tokens: int | None = 32000
 
@@ -50,7 +50,7 @@ class Settings(BaseModel):
     openai: OpenAISettings = Field(default_factory=OpenAISettings)
     gigachat: GigaChatSettings = Field(default_factory=GigaChatSettings)
     allow_manipulation: bool = bool(os.getenv("ALLOW_MANIPULATION", "False"))
-    default_llm_provider: str = os.getenv("DEFAULT_LLM_PROVIDER", "openai")
+    default_llm_provider: str = os.getenv("DEFAULT_LLM_PROVIDER", "gigachat")
 
 
 @lru_cache

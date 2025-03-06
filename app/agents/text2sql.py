@@ -8,6 +8,7 @@ available schema, then generating and executing the appropriate SQL.
 """
 
 import logging
+import traceback
 from enum import Enum
 from typing import Any
 
@@ -79,7 +80,6 @@ class Text2SQLAgent(Agent):
         """
         self.settings = get_settings()
         self.llm = LLMFactory(provider=self.settings.default_llm_provider)
-        self.logger = logging.getLogger(__name__)
         self.connector = DatabaseConnector()
 
     def _verify_query(
@@ -120,6 +120,7 @@ class Text2SQLAgent(Agent):
             return result
         except Exception as e:
             logging.error(f"Error in query verification: {e}")
+            logging.error(traceback.format_exc())
             return VerificationResult(
                 validation_status=QueryValidationType.INVALID,
                 explanation=f"Error during verification: {str(e)}",
@@ -160,7 +161,8 @@ class Text2SQLAgent(Agent):
             # Return the generated SQL query
             return result  # type: ignore
         except Exception as e:
-            self.logger.error(f"Error generating SQL query: {e}")
+            logging.error(f"Error generating SQL query: {e}")
+            logging.error(traceback.format_exc())
             raise ValueError(f"Failed to generate SQL: {e}")
 
     def process_query(
@@ -183,7 +185,7 @@ class Text2SQLAgent(Agent):
         Returns:
             AgentResponse: A standardized response containing SQL, results, or error information
         """
-        self.logger.info(f"Processing Text2SQL query: '{query}'")
+        logging.info(f"Processing Text2SQL query: '{query}'")
 
         try:
             # Step 1: Verify the query (Evaluator phase)

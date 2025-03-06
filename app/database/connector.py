@@ -5,6 +5,7 @@ This module provides a connector to interact with PostgreSQL databases.
 """
 
 import logging
+import traceback
 import typing as tp
 
 import pandas as pd
@@ -45,7 +46,6 @@ class DatabaseConnector:
         self.user = self.settings.database.user
         self.password = self.settings.database.password
         self.schema_name = self.settings.database.schema_name
-        self.logger = logging.getLogger(__name__)
 
         # SQLAlchemy components
         self._engine = None
@@ -77,7 +77,7 @@ class DatabaseConnector:
         """
         try:
             if self._engine is None:
-                self.logger.info(
+                logging.info(
                     f"Connecting to PostgreSQL database {self.db_name} on {self.host}:{self.port}"
                 )
                 connection_string = f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.db_name}"
@@ -88,7 +88,8 @@ class DatabaseConnector:
                 )
             return self._engine
         except Exception as e:
-            self.logger.error(f"Failed to connect to database: {str(e)}")
+            logging.error(f"Failed to connect to database: {str(e)}")
+            logging.error(traceback.format_exc())
             raise
 
     def get_session(self) -> Session:
@@ -102,7 +103,7 @@ class DatabaseConnector:
         if self._engine:
             self._engine.dispose()
             self._engine = None
-            self.logger.info("Database connection closed")
+            logging.info("Database connection closed")
 
     def test_connection(self) -> bool:
         """
@@ -116,7 +117,8 @@ class DatabaseConnector:
                 conn.execute(text("SELECT 1"))
             return True
         except SQLAlchemyError as e:
-            self.logger.error(f"Connection test failed: {str(e)}")
+            logging.error(f"Connection test failed: {str(e)}")
+            logging.error(traceback.format_exc())
             return False
 
     def execute_query(
@@ -168,7 +170,8 @@ class DatabaseConnector:
                         "query": query,
                     }
         except Exception as e:
-            self.logger.error(f"Query execution failed: {str(e)}")
+            logging.error(f"Query execution failed: {str(e)}")
+            logging.error(traceback.format_exc())
             return {
                 "success": False,
                 "error": str(e),
@@ -202,10 +205,10 @@ class DatabaseConnector:
                 if comment_info and "text" in comment_info:
                     table_comment = comment_info["text"]
             except (NotImplementedError, Exception) as e:
-                self.logger.debug(
+                logging.debug(
                     f"Could not retrieve comment for table {table_name}: {str(e)}"
                 )
-
+                logging.error(traceback.format_exc())
             table_info = {
                 "name": table_name,
                 "columns": [],
@@ -301,9 +304,10 @@ class DatabaseConnector:
             result = self.execute_query(query)
             return result.get("rows", [])
         except Exception as e:
-            self.logger.error(
+            logging.error(
                 f"Failed to get sample data for {table_name}: {str(e)}"
             )
+            logging.error(traceback.format_exc())
             return []
 
     def get_row_count(self, table_name: str) -> int:
@@ -325,9 +329,10 @@ class DatabaseConnector:
                 result = conn.execute(count_query)
                 return result.scalar()
         except Exception as e:
-            self.logger.error(
+            logging.error(
                 f"Failed to get row count for {table_name}: {str(e)}"
             )
+            logging.error(traceback.format_exc())
             return -1
 
     def get_text2sql_context(self) -> dict[str, tp.Any]:
@@ -407,13 +412,13 @@ class DatabaseConnector:
             pandas DataFrame containing the query results or None if conversion fails
         """
         if not query_results.get("success", False):
-            self.logger.error(
+            logging.error(
                 f"Cannot convert failed query to DataFrame: {query_results.get('error')}"
             )
             return None
 
         if "rows" not in query_results:
-            self.logger.info(
+            logging.info(
                 "Query did not return any rows to convert to DataFrame"
             )
             return None
@@ -423,9 +428,10 @@ class DatabaseConnector:
             df = pd.DataFrame(query_results["rows"])
             return df
         except Exception as e:
-            self.logger.error(
+            logging.error(
                 f"Failed to convert query results to DataFrame: {str(e)}"
             )
+            logging.error(traceback.format_exc())
             return None
 
     def execute_query_to_df(
@@ -452,9 +458,3 @@ class DatabaseConnector:
         """Clean up resources when object is garbage collected."""
         self.close()
 
-
-if __name__ == "__main__":
-    from pprint import pprint
-
-    connector = DatabaseConnector()
-    pprint(connector.get_text2sql_context())

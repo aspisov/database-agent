@@ -5,7 +5,7 @@ This module contains the response models used by all agents in the system.
 These models provide a standardized way to return responses to the user.
 """
 
-import typing as tp
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -70,7 +70,7 @@ class Text2SQLResponse(AgentResponse):
     sql_query: str | None = Field(
         default=None, description="The generated SQL query"
     )
-    query_results: dict[str, tp.Any] | None = Field(
+    query_results: dict[str, Any] | None = Field(
         default=None,
         description="Dictionary with query results and metadata",
     )

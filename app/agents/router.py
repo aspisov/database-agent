@@ -6,6 +6,7 @@ and routing them to the appropriate specialized agent (Text2SQL, Visualization, 
 """
 
 import logging
+import traceback
 import typing as tp
 from enum import Enum
 
@@ -102,7 +103,7 @@ class QueryRouter:
             )
         except Exception as e:
             logging.error(f"Error in query classification: {e}")
-            # Default to Chat if classification fails
+            logging.error(traceback.format_exc())
             return self.default_classification
 
     def route_query(
