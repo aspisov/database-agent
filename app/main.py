@@ -5,8 +5,8 @@ Launcher script for the Streamlit web interface.
 This script launches the Streamlit web interface for the Conversational Database Agent.
 """
 
-import subprocess
 import os
+import subprocess
 import sys
 
 

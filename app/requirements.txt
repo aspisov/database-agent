@@ -8,3 +8,4 @@ streamlit
 dotenv
 jinja2
 python-frontmatter
+instructor

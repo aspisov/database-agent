@@ -6,21 +6,21 @@ This module provides a connector to interact with PostgreSQL databases.
 
 import logging
 import typing as tp
+
 import pandas as pd
+from config.settings import get_settings
 from sqlalchemy import (
-    create_engine,
     MetaData,
     Table,
-    inspect,
-    text,
-    select,
+    create_engine,
     func,
+    inspect,
+    select,
+    text,
 )
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import sessionmaker, Session
-
-from config.settings import get_settings
+from sqlalchemy.orm import Session, sessionmaker
 
 
 class DatabaseConnector:
@@ -41,10 +41,10 @@ class DatabaseConnector:
         self.settings = get_settings()
         self.host = self.settings.database.host
         self.port = self.settings.database.port
-        self.dbname = self.settings.database.name
+        self.db_name = self.settings.database.db_name
         self.user = self.settings.database.user
         self.password = self.settings.database.password
-        self.schema = self.settings.database.schema
+        self.schema_name = self.settings.database.schema_name
         self.logger = logging.getLogger(__name__)
 
         # SQLAlchemy components
@@ -60,7 +60,7 @@ class DatabaseConnector:
     def _initialize(self):
         """Initialize SQLAlchemy components"""
         self._engine = self._get_connection()
-        self._metadata = MetaData(schema=self.schema)
+        self._metadata = MetaData(schema=self.schema_name)
         self._metadata.reflect(bind=self._engine)
         self._inspector = inspect(self._engine)
         self._session_factory = sessionmaker(bind=self._engine)
@@ -78,9 +78,9 @@ class DatabaseConnector:
         try:
             if self._engine is None:
                 self.logger.info(
-                    f"Connecting to PostgreSQL database {self.dbname} on {self.host}:{self.port}"
+                    f"Connecting to PostgreSQL database {self.db_name} on {self.host}:{self.port}"
                 )
-                connection_string = f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.dbname}"
+                connection_string = f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.db_name}"
                 self._engine = create_engine(
                     connection_string,
                     pool_pre_ping=True,
@@ -185,8 +185,8 @@ class DatabaseConnector:
         schema_info = {
             "tables": [],
             "relationships": self.get_table_relationships(),
-            "database_name": self.dbname,
-            "schema_name": self.schema,
+            "database_name": self.db_name,
+            "schema_name": self.schema_name,
         }
 
         # Get all tables
@@ -197,7 +197,7 @@ class DatabaseConnector:
             table_comment = None
             try:
                 comment_info = self._inspector.get_table_comment(
-                    table_name, schema=self.schema
+                    table_name, schema=self.schema_name
                 )
                 if comment_info and "text" in comment_info:
                     table_comment = comment_info["text"]
@@ -210,10 +210,10 @@ class DatabaseConnector:
                 "name": table_name,
                 "columns": [],
                 "primary_keys": self._inspector.get_pk_constraint(
-                    table_name, schema=self.schema
+                    table_name, schema=self.schema_name
                 )["constrained_columns"],
                 "indexes": self._inspector.get_indexes(
-                    table_name, schema=self.schema
+                    table_name, schema=self.schema_name
                 ),
                 "sample_data": self.get_sample_data(table_name, 3),
                 "row_count": self.get_row_count(table_name),
@@ -222,7 +222,7 @@ class DatabaseConnector:
 
             # Get column information
             for column in self._inspector.get_columns(
-                table_name, schema=self.schema
+                table_name, schema=self.schema_name
             ):
                 column_info = {
                     "name": column["name"],
@@ -259,7 +259,7 @@ class DatabaseConnector:
 
         for table_name in self.get_tables():
             for fk in self._inspector.get_foreign_keys(
-                table_name, schema=self.schema
+                table_name, schema=self.schema_name
             ):
                 relationship = {
                     "source_table": table_name,
@@ -279,7 +279,7 @@ class DatabaseConnector:
         Returns:
             List of table names
         """
-        return self._inspector.get_table_names(schema=self.schema)
+        return self._inspector.get_table_names(schema=self.schema_name)
 
     def get_sample_data(
         self, table_name: str, limit: int = 5
@@ -295,7 +295,9 @@ class DatabaseConnector:
             List of dictionaries with sample data
         """
         try:
-            query = f"SELECT * FROM {self.schema}.{table_name} LIMIT {limit}"
+            query = (
+                f"SELECT * FROM {self.schema_name}.{table_name} LIMIT {limit}"
+            )
             result = self.execute_query(query)
             return result.get("rows", [])
         except Exception as e:

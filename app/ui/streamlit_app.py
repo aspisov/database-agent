@@ -5,18 +5,18 @@ This module provides a web-based GUI using Streamlit to interact with the
 Conversational Database Agent.
 """
 
-import streamlit as st
 import logging
 
+import streamlit as st
 from agents.router import QueryRouter
+from config.settings import get_settings
+from models.context import Context
 from models.response import (
     AgentResponse,
-    Text2SQLResponse,
     ChatResponse,
+    Text2SQLResponse,
 )
 from utils.dataframe_utils import query_results_to_dataframe
-from models.context import Context
-from config.settings import get_settings
 
 # Get settings
 settings = get_settings()

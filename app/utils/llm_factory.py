@@ -28,8 +28,6 @@ class LLMFactory:
         elif provider == "gigachat":
             # Create GigaChat client with proper settings
             kwargs = {
-                "base_url": self.settings.gigachat.base_url,
-                "auth_url": self.settings.gigachat.auth_url,
                 "scope": self.settings.gigachat.scope,
                 "credentials": self.settings.gigachat.api_key,
                 "model": self.settings.gigachat.model,
@@ -37,7 +35,6 @@ class LLMFactory:
                 "temperature": self.settings.gigachat.temperature,
                 "top_p": self.settings.gigachat.top_p,
                 "max_tokens": self.settings.gigachat.max_tokens,
-                "profanity_check": self.settings.gigachat.profanity_check,
                 "timeout": self.settings.gigachat.timeout,
             }
             return GigaChat(**kwargs)

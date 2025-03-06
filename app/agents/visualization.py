@@ -7,13 +7,13 @@ visualization code based on natural language queries and query results.
 
 import logging
 from typing import Any
+
+from config.settings import get_settings
+from models.response import AgentResponse
 from pydantic import BaseModel, Field
+from utils.llm_factory import LLMFactory
 
 from agents.base import Agent
-from models.response import AgentResponse
-from config.settings import get_settings
-from prompts.prompt_manager import PromptManager
-from utils.llm_factory import LLMFactory
 
 
 class ModifiedQuery(BaseModel):

@@ -6,8 +6,8 @@ These models provide a standardized way to return responses to the user.
 """
 
 import typing as tp
+
 from pydantic import BaseModel, Field
-import pandas as pd
 
 
 class AgentResponse(BaseModel):

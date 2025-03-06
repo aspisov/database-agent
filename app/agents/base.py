@@ -4,10 +4,9 @@ Base Agent Module
 This module defines the base Agent class that all specialized agents inherit from.
 """
 
-from abc import ABC, abstractmethod
 import typing as tp
+from abc import ABC, abstractmethod
 
-from models.context import Context
 from models.response import AgentResponse
 
 

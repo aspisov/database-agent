@@ -1,8 +1,9 @@
-from functools import lru_cache
 import logging
 import os
-from pydantic import BaseModel, Field
+from functools import lru_cache
+
 import dotenv
+from pydantic import BaseModel, Field
 
 dotenv.load_dotenv()
 
@@ -26,17 +27,12 @@ class OpenAISettings(LLMSettings):
 
 
 class GigaChatSettings(LLMSettings):
-    base_url: str = Field(
-        default_factory=lambda: os.getenv("GIGACHAT_BASE_URL")
+    scope: str = Field(
+        default_factory=lambda: os.getenv("GIGACHAT_SCOPE", "GIGACHAT_API_PERS")
     )
-    auth_url: str = Field(
-        default_factory=lambda: os.getenv("GIGACHAT_AUTH_URL")
-    )
-    scope: str = Field(default_factory=lambda: os.getenv("GIGACHAT_SCOPE"))
     api_key: str = Field(default_factory=lambda: os.getenv("GIGACHAT_API_KEY"))
     model: str = "GigaChat-Max"
     max_tokens: int | None = 32000
-    profanity_check: bool = False
 
 
 class DatabaseSettings(BaseModel):
@@ -44,8 +40,8 @@ class DatabaseSettings(BaseModel):
     port: int = int(os.getenv("DB_PORT", 5432))
     user: str = os.getenv("DB_USER", "postgres")
     password: str = os.getenv("DB_PASSWORD", "postgres")
-    name: str = os.getenv("DB_NAME", "postgres")
-    schema: str = os.getenv("DB_SCHEMA", "public")
+    db_name: str = os.getenv("DB_NAME", "postgres")
+    schema_name: str = os.getenv("DB_SCHEMA", "public")
 
 
 class Settings(BaseModel):

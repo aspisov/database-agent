@@ -1,14 +1,15 @@
+from pathlib import Path
+from typing import Any, cast
+
+import frontmatter
 from jinja2 import (
     Environment,
     FileSystemLoader,
     StrictUndefined,
+    Template,
     TemplateError,
     meta,
-    Template,
 )
-from pathlib import Path
-import frontmatter
-from typing import Any, cast
 
 
 class PromptManager:

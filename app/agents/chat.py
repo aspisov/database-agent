@@ -9,10 +9,11 @@ import logging
 import typing as tp
 
 from config.settings import get_settings
-from agents.base import Agent
 from models.response import AgentResponse, ChatResponse
 from prompts.prompt_manager import PromptManager
 from utils.llm_factory import LLMFactory
+
+from agents.base import Agent
 
 
 class ChatAgent(Agent):
