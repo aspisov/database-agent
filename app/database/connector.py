@@ -1,7 +1,8 @@
 """
 Database Connector Module
 
-This module provides a connector to interact with PostgreSQL databases.
+Provides a robust PostgreSQL database connector with schema inspection and
+query execution capabilities.
 """
 
 import logging
@@ -25,19 +26,15 @@ from sqlalchemy.orm import Session, sessionmaker
 
 
 class DatabaseConnector:
-    """Connector for PostgreSQL database interactions."""
+    """
+    PostgreSQL connector that handles database operations and schema inspection.
+    Provides methods for executing queries, exploring schema, and working with
+    query results.
+    """
 
     def __init__(self):
         """
-        Initialize the database connector.
-
-        Args:
-            host: Database host
-            port: Database port
-            dbname: Database name
-            user: Database user
-            password: Database password
-            schema: Database schema
+        Initialize database connector using settings from configuration.
         """
         self.settings = get_settings()
         self.host = self.settings.database.host
@@ -59,51 +56,51 @@ class DatabaseConnector:
 
     def _initialize(self):
         """Initialize SQLAlchemy components"""
-        self._engine = self._get_connection()
-        self._metadata = MetaData(schema=self.schema_name)
-        self._metadata.reflect(bind=self._engine)
-        self._inspector = inspect(self._engine)
-        self._session_factory = sessionmaker(bind=self._engine)
+        try:
+            self._engine = self._get_connection()
+            if self._engine:
+                self._metadata = MetaData(schema=self.schema_name)
+                self._metadata.reflect(bind=self._engine)
+                self._inspector = inspect(self._engine)
+                self._session_factory = sessionmaker(bind=self._engine)
+            else:
+                logging.error("Failed to initialize database connection")
+        except Exception as e:
+            logging.error(f"Error initializing database connector: {e}")
+            logging.error(traceback.format_exc())
 
-    def _get_connection(self) -> Engine:
+    def _get_connection(self) -> Engine | None:
         """
         Get a database connection.
 
         Returns:
-            SQLAlchemy Engine object
-
-        Raises:
-            Exception: If connection fails
+            SQLAlchemy Engine object or None if connection fails
         """
         try:
-            if self._engine is None:
-                logging.info(
-                    f"Connecting to PostgreSQL database {self.db_name} on {self.host}:{self.port}"
-                )
-                connection_string = f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.db_name}"
-                self._engine = create_engine(
-                    connection_string,
-                    pool_pre_ping=True,
-                    pool_recycle=3600,
-                )
-            return self._engine
+            connection_string = (
+                f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.db_name}"
+            )
+            return create_engine(connection_string)
         except Exception as e:
-            logging.error(f"Failed to connect to database: {str(e)}")
+            logging.error(f"Error creating database connection: {e}")
             logging.error(traceback.format_exc())
-            raise
+            return None
 
-    def get_session(self) -> Session:
-        """Get a new SQLAlchemy session"""
+    def get_session(self) -> Session | None:
+        """
+        Get a database session.
+
+        Returns:
+            SQLAlchemy Session object
+        """
         if self._session_factory is None:
             self._initialize()
-        return self._session_factory()
+        return self._session_factory() if self._session_factory else None
 
     def close(self):
         """Close the database connection."""
         if self._engine:
             self._engine.dispose()
-            self._engine = None
-            logging.info("Database connection closed")
 
     def test_connection(self) -> bool:
         """
@@ -112,12 +109,17 @@ class DatabaseConnector:
         Returns:
             True if connection is successful, False otherwise
         """
+        if not self._engine:
+            self._initialize()
+            if not self._engine:
+                return False
+                
         try:
             with self._engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
             return True
         except SQLAlchemyError as e:
-            logging.error(f"Connection test failed: {str(e)}")
+            logging.error(f"Database connection test failed: {e}")
             logging.error(traceback.format_exc())
             return False
 

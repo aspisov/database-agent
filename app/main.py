@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """
-Launcher script for the Streamlit web interface.
+Launcher script for the Database Agent web interface.
 
-This script launches the Streamlit web interface for the Conversational Database Agent.
+Starts up the Streamlit web interface for the conversational database agent.
 """
 
 import os

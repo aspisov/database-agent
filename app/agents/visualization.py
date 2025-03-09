@@ -1,8 +1,8 @@
 """
 Visualization Agent Module
 
-This module contains the VisualizationAgent responsible for generating
-visualization code based on natural language queries and query results.
+Handles visualization requests by generating code to create charts and graphs
+from query results.
 """
 
 import logging
@@ -18,26 +18,20 @@ from agents.base import Agent
 
 
 class ModifiedQuery(BaseModel):
-    """Modifies visualization query for the Text2SQL agent to recieve desired dataframe"""
+    """Modifies query to retrieve data for visualization"""
 
     query: str = Field(
-        description="Modified query that would recieve relevant data from database"
+        description="Modified query to get relevant data from database"
     )
 
 
 class VisualizationAgent(Agent):
     """
-    Visualization Agent responsible for generating visualizations from
-    data based on natural language descriptions.
+    Creates visualizations from data based on natural language descriptions.
     """
 
     def __init__(self):
-        """
-        Initialize the visualization agent.
-
-        Args:
-            llm_provider: The LLM provider to use ("openai" or "gigachat")
-        """
+        """Initialize the visualization agent."""
         self.settings = get_settings()
         self.llm = LLMFactory(provider=self.settings.default_llm_provider)
         self.logger = logging.getLogger(__name__)
@@ -46,14 +40,14 @@ class VisualizationAgent(Agent):
         self, query: str, context: Any | None = None
     ) -> AgentResponse:
         """
-        Process a visualization query and modify it for the Text2SQL agent.
+        Process a visualization request and prepare a query for data retrieval.
 
         Args:
-            query: The user's visualization request
-            context: Optional context for the query
+            query: User's visualization request
+            context: Optional conversation context
 
         Returns:
-            AgentResponse containing the modified query
+            Response with modified query for data retrieval
         """
         return AgentResponse.error_response(
             query_type="Visualization",

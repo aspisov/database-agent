@@ -1,8 +1,7 @@
 """
 Chat Agent Module
 
-This module contains the ChatAgent responsible for handling general conversational
-queries that don't require SQL or visualizations.
+Handles general conversational queries that don't require SQL or visualizations.
 """
 
 import logging
@@ -19,16 +18,11 @@ from agents.base import Agent
 
 class ChatAgent(Agent):
     """
-    Chat Agent responsible for handling general conversational queries.
+    Handles general conversational interactions with the user.
     """
 
     def __init__(self):
-        """
-        Initialize the Chat agent.
-
-        Args:
-            llm_provider: The LLM provider to use ("openai" or "gigachat")
-        """
+        """Initialize the Chat agent."""
         self.settings = get_settings()
         self.llm = LLMFactory(provider=self.settings.default_llm_provider)
 
@@ -36,14 +30,14 @@ class ChatAgent(Agent):
         self, query: str, context: tp.Any | None = None
     ) -> AgentResponse:
         """
-        Process a general chat query and return a response.
+        Process a general chat query.
 
         Args:
-            query: The user's natural language query.
-            context: Optional context information (conversation history).
+            query: User's query text
+            context: Optional conversation history
 
         Returns:
-            AgentResponse: A standardized response with the chat answer.
+            Response with the chat answer
         """
         logging.info(f"Processing chat query: {query}")
 

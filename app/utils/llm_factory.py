@@ -8,12 +8,19 @@ from pydantic import BaseModel
 
 
 class LLMFactory:
+    """
+    Factory for creating language model clients with consistent configuration.
+    Supports multiple LLM providers with a unified interface.
+    """
+    
     def __init__(self, provider: str):
+        """Initialize the LLM factory with the specified provider."""
         self.provider = provider
         self.settings = get_settings()
         self.llm = self._initialize_llm(provider)
 
     def _initialize_llm(self, provider: str):
+        """Set up the appropriate LLM client based on provider."""
         if provider == "openai":
             kwargs = {
                 "api_key": self.settings.openai.api_key,
@@ -49,12 +56,12 @@ class LLMFactory:
         Create a completion using the configured LLM.
 
         Args:
-            system_prompt: The system prompt to use
-            user_prompt: The user prompt to use
-            response_model: A Pydantic model class (not an instance) to parse the response
+            system_prompt: System instructions for the model
+            user_prompt: User's query to process
+            response_model: Optional Pydantic model for structured output
 
         Returns:
-            Either a string response or a structured output based on the response_model
+            Either a string response or a structured object
         """
         messages = [
             SystemMessage(content=system_prompt),

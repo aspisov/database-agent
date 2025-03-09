@@ -1,10 +1,8 @@
 """
 Text2SQL Agent Module
 
-This module contains the Text2SQL agent responsible for converting natural language
-queries into executable SQL queries for PostgreSQL databases. The agent follows an
-evaluator-optimizer pattern, first verifying if a query can be answered with the
-available schema, then generating and executing the appropriate SQL.
+Converts natural language queries into executable SQL for PostgreSQL.
+Uses a two-phase approach with verification and generation steps.
 """
 
 import logging
@@ -24,7 +22,7 @@ from agents.base import Agent
 
 
 class SQLQuery(BaseModel):
-    """Structured output for SQL generation containing the query and reasoning."""
+    """Generated SQL query with reasoning and explanation."""
 
     reasoning: str = Field(
         description="Step-by-step reasoning process explaining how the SQL query was derived"
@@ -33,12 +31,12 @@ class SQLQuery(BaseModel):
         description="The executable SQL query in PostgreSQL syntax"
     )
     explanation: str = Field(
-        description="User-friendly explanation of what the query does and how it addresses the question"
+        description="User-friendly explanation of what the query does"
     )
 
 
 class QueryValidationType(Enum):
-    """Classification of natural language query validation status."""
+    """Validation status for natural language queries."""
 
     VALID = "valid"
     REQUIRES_CLARIFICATION = "requires_clarification"
@@ -46,38 +44,31 @@ class QueryValidationType(Enum):
 
 
 class VerificationResult(BaseModel):
-    """Structured output from the query verification step."""
+    """Result from query verification phase."""
 
     validation_status: QueryValidationType = Field(
-        description="Determination of whether the query can be answered with the available schema"
+        description="Whether the query can be answered with the available schema"
     )
     explanation: str = Field(
-        description="Detailed explanation of the verification result, including reasoning"
+        description="Explanation of the verification result"
     )
     clarification_question: str | None = Field(
         default=None,
-        description="Specific question to ask the user when additional information is needed to formulate an SQL query",
+        description="Question to ask user when more information is needed"
     )
 
 
 class Text2SQLAgent(Agent):
     """
-    Text2SQL Agent that transforms natural language queries into executable SQL.
-
-    This agent uses a two-phase approach:
-    1. Verification: Checks if the query can be answered with the available database schema
-    2. Generation: Creates an optimized SQL query based on the validated natural language query
-
-    The agent connects to a database to execute the generated queries and return results.
+    Transforms natural language into optimized SQL queries.
+    
+    Uses a two-phase approach:
+    1. Verification: Validates if query can be answered with available schema
+    2. Generation: Creates SQL based on the validated query
     """
 
     def __init__(self):
-        """
-        Initialize the Text2SQL agent with language model and database connections.
-
-        Args:
-            llm_provider: The language model provider to use ("openai" or "gigachat")
-        """
+        """Initialize the Text2SQL agent with LLM and database connector."""
         self.settings = get_settings()
         self.llm = LLMFactory(provider=self.settings.default_llm_provider)
         self.connector = DatabaseConnector()
@@ -86,14 +77,14 @@ class Text2SQLAgent(Agent):
         self, query: str, context: Context | None = None
     ) -> VerificationResult:
         """
-        Verifies if the user query can be answered with the available database schema.
+        Check if query can be answered with available database schema.
 
         Args:
-            query: The natural language query to verify
-            context: Optional context containing database connection and schema
+            query: Natural language query to verify
+            context: Optional database context
 
         Returns:
-            VerificationResult with validation status and explanation
+            Verification result with status and explanation
         """
         try:
             logging.info(f"Verifying query: {query}")
@@ -131,14 +122,14 @@ class Text2SQLAgent(Agent):
         self, query: str, context: Context | None = None
     ) -> SQLQuery:
         """
-        Generates SQL from the user's natural language query.
+        Generate SQL from natural language query.
 
         Args:
-            query: The natural language query to convert to SQL
-            context: Optional context containing database connection and schema
+            query: Natural language query 
+            context: Optional database context
 
         Returns:
-            SQLQuery with the generated SQL and explanation
+            SQLQuery with generated SQL and explanation
         """
         try:
             logging.info(f"Generating SQL for query: {query}")
@@ -169,21 +160,18 @@ class Text2SQLAgent(Agent):
         self, query: str, context: Any | None = None
     ) -> AgentResponse:
         """
-        Process a natural language query through validation, SQL generation, and execution.
-
-        This method follows the Evaluator-Optimizer workflow pattern:
-        1. First, evaluate the query using the _verify_query method (evaluator)
-        2. Then, based on the verification result:
-           - If valid, generate and execute the SQL (optimizer)
-           - If clarification needed, return a clarification request
-           - If invalid, return an informative error message
-
+        Process user query through verification, SQL generation, and execution.
+        
+        Follows an evaluator-optimizer workflow:
+        1. First verifies if query is answerable
+        2. Then generates and executes SQL if valid
+        
         Args:
-            query: The user's natural language query
-            context: Optional conversation context for resolving references
+            query: User's natural language query
+            context: Optional conversation context
 
         Returns:
-            AgentResponse: A standardized response containing SQL, results, or error information
+            Response with SQL, results, or clarification request
         """
         logging.info(f"Processing Text2SQL query: '{query}'")
 

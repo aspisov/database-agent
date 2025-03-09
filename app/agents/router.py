@@ -1,8 +1,7 @@
 """
 Query Router Module
 
-This module contains the QueryRouter class responsible for classifying user queries
-and routing them to the appropriate specialized agent (Text2SQL, Visualization, or Chat).
+Routes user queries to the appropriate specialized agent based on query type.
 """
 
 import logging
@@ -22,7 +21,7 @@ from agents.visualization import VisualizationAgent
 
 
 class QueryType(str, Enum):
-    """Enum for query types"""
+    """Types of queries the system can handle"""
 
     TEXT2SQL = "Text2SQL"
     VISUALIZATION = "Visualization"
@@ -30,7 +29,7 @@ class QueryType(str, Enum):
 
 
 class QueryClassification(BaseModel):
-    """Classification result for user queries."""
+    """Classification result for user queries"""
 
     query_type: QueryType = Field(description="The type of query")
     confidence_score: float = Field(
@@ -38,18 +37,17 @@ class QueryClassification(BaseModel):
     )
     updated_query: str | None = Field(
         default=None,
-        description="Updated query based on chat history context when the query is a clarification of previous conversation",
+        description="Updated query based on conversation context when clarifying previous queries",
     )
 
 
 class QueryRouter:
     """
-    Query Router responsible for analyzing user queries and determining which
-    specialized agent should handle them.
+    Routes queries to the right specialized agent based on content analysis.
     """
 
     def __init__(self):
-        """Initialize the QueryRouter with its agents."""
+        """Initialize the QueryRouter with its specialized agents."""
         self.settings = get_settings()
 
         self.llm = LLMFactory(provider=self.settings.default_llm_provider)
@@ -68,14 +66,14 @@ class QueryRouter:
         self, query: str, context: tp.Any | None = None
     ) -> QueryClassification:
         """
-        Classify user query to determine which agent should handle it.
+        Analyze query to decide which agent should handle it.
 
         Args:
-            query: The user's query
-            context: Optional context for the query
+            query: User's query text
+            context: Optional conversation context
 
         Returns:
-            Classification result with query type and confidence score
+            Classification with query type and confidence score
         """
         # Format chat history as string if provided in context
         history = ""
@@ -110,14 +108,14 @@ class QueryRouter:
         self, query: str, context: tp.Any | None = None
     ) -> AgentResponse:
         """
-        Route the query to the appropriate handler based on classification.
+        Send the query to the right agent based on classification.
 
         Args:
-            query: The user's natural language query.
-            context: Optional context information.
+            query: User's query text
+            context: Optional conversation context
 
         Returns:
-            AgentResponse: A standardized response from the appropriate agent.
+            Response from the appropriate specialized agent
         """
         # Classify the query
         classification = self.classify_query(query, context)

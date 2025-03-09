@@ -1,7 +1,7 @@
 """
 Base Agent Module
 
-This module defines the base Agent class that all specialized agents inherit from.
+Defines the base Agent class that all specialized agents will inherit from.
 """
 
 import typing as tp
@@ -12,10 +12,10 @@ from models.response import AgentResponse
 
 class Agent(ABC):
     """
-    Base Agent abstract class that defines the interface for all specialized agents.
-
-    All agents must implement the process_query method, which takes a query string
-    and optional context and returns an AgentResponse.
+    Base Agent abstract class that all specialized agents inherit from.
+    
+    Provides a common interface for processing user queries across different
+    agent types in the system.
     """
 
     @abstractmethod
@@ -26,10 +26,10 @@ class Agent(ABC):
         Process a user query and return a response.
 
         Args:
-            query: The user's natural language query.
-            context: Optional context information (e.g., conversation history).
+            query: The user's natural language query
+            context: Optional context info (conversation history, etc.)
 
         Returns:
-            AgentResponse: A standardized response object with the result.
+            AgentResponse: A structured response object
         """
         pass
