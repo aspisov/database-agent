@@ -15,12 +15,12 @@ from jinja2 import (
 class PromptManager:
     """
     Manages prompt templates for all agents in the system.
-    
+
     Handles loading, rendering, and providing access to Jinja2 templates
     with frontmatter metadata. Supports various prompt types for different
     agent functions.
     """
-    
+
     _env: Environment | None = None
 
     @classmethod
@@ -28,9 +28,7 @@ class PromptManager:
         """Initialize and return the Jinja2 environment."""
         if cls._env is None:
             cls._env = Environment(
-                loader=FileSystemLoader(
-                    Path(__file__).parent.parent / templates_dir
-                ),
+                loader=FileSystemLoader(Path(__file__).parent.parent / templates_dir),
                 undefined=StrictUndefined,
             )
         return cls._env
@@ -50,7 +48,7 @@ class PromptManager:
         env = PromptManager.get_env()
         if not env or not env.loader:
             raise ValueError("Jinja2 environment or loader not initialized")
-            
+
         template_path = f"{template}.j2"
         try:
             # Get source tuple (source, filename, uptodate)
@@ -64,9 +62,7 @@ class PromptManager:
                 try:
                     return jinja_template.render(**kwargs)
                 except TemplateError as e:
-                    raise ValueError(
-                        f"Error rendering template {template}: {e}"
-                    )
+                    raise ValueError(f"Error rendering template {template}: {e}")
             else:
                 raise ValueError(
                     f"Template {template} not found or invalid source tuple"
@@ -88,7 +84,7 @@ class PromptManager:
         env = PromptManager.get_env()
         if not env or not env.loader:
             raise ValueError("Jinja2 environment or loader not initialized")
-            
+
         template_path = f"{template}.j2"
         try:
             # Get source tuple (source, filename, uptodate)
@@ -136,37 +132,53 @@ class PromptManager:
 
     # ------ TEXT2SQL PROMPTS ------
     @classmethod
-    def get_text2sql_generation_system_prompt(
-        cls, additional_info: str | None = None
-    ) -> str:
+    def get_text2sql_generation_system_prompt(cls) -> str:
         """Get system prompt for SQL generation."""
-        return cls.get_prompt(
-            "text2sql_generation_system", additional_info=additional_info
-        )
+        return cls.get_prompt("text2sql_generation_system")
 
     @classmethod
     def get_text2sql_generation_user_prompt(
-        cls, query: str, metadata: str
+        cls,
+        query: str,
+        metadata: str,
+        sql_query: str | None = None,
+        fix: str | None = None,
     ) -> str:
         """Get user prompt for SQL generation."""
         return cls.get_prompt(
-            "text2sql_generation_user", query=query, metadata=metadata
+            "text2sql_generation_user",
+            query=query,
+            metadata=metadata,
+            sql_query=sql_query,
+            fix=fix,
         )
 
     @classmethod
-    def get_text2sql_verify_prompt(cls) -> str:
-        """Get system prompt for SQL query verification."""
-        return cls.get_prompt("text2sql_verify")
+    def get_text2sql_validation_system_prompt(cls) -> str:
+        """Get system prompt for SQL query validation."""
+        return cls.get_prompt("text2sql_validation_system")
 
     @classmethod
-    def get_text2sql_verify_user_prompt(cls, query: str, metadata: str) -> str:
-        """Get user prompt for SQL query verification."""
+    def get_text2sql_validation_user_prompt(cls, query: str, metadata: str) -> str:
+        """Get user prompt for SQL query validation."""
         return cls.get_prompt(
-            "text2sql_verify_user", query=query, metadata=metadata
+            "text2sql_validation_user", query=query, metadata=metadata
         )
 
-    # ------ VISUALIZATION PROMPTS ------
     @classmethod
-    def get_modify_query_system_prompt(cls, examples: bool = True) -> str:
-        """Get system prompt for visualization query modification."""
-        return cls.get_prompt("modify_query_system", examples=examples)
+    def get_text2sql_evaluation_system_prompt(cls) -> str:
+        """Get system prompt for SQL query evaluation."""
+        return cls.get_prompt("text2sql_evaluation_system")
+
+    @classmethod
+    def get_text2sql_evaluation_user_prompt(
+        cls, query: str, metadata: str, sql_query: str, execution_result: str
+    ) -> str:
+        """Get user prompt for SQL query evaluation."""
+        return cls.get_prompt(
+            "text2sql_evaluation_user",
+            query=query,
+            metadata=metadata,
+            sql_query=sql_query,
+            execution_result=execution_result,
+        )

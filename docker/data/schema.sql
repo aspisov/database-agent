@@ -4,10 +4,6 @@ CREATE TABLE IF NOT EXISTS bookings (
     book_date TIMESTAMPTZ NOT NULL,  -- Date and time when the booking was made
     total_amount NUMERIC(10, 2) NOT NULL  -- Total price of the booking
 );
-COMMENT ON TABLE bookings IS 'Stores information about flight bookings.';
-COMMENT ON COLUMN bookings.book_ref IS 'Unique reference number for the booking.';
-COMMENT ON COLUMN bookings.book_date IS 'Timestamp indicating when the booking was made.';
-COMMENT ON COLUMN bookings.total_amount IS 'Total cost of the booking in currency units.';
 
 -- Table storing ticket details for passengers
 CREATE TABLE IF NOT EXISTS tickets (
@@ -17,12 +13,7 @@ CREATE TABLE IF NOT EXISTS tickets (
     passenger_name TEXT NOT NULL,  -- Full name of the passenger
     contact_data JSONB  -- JSON structure containing passenger contact details
 );
-COMMENT ON TABLE tickets IS 'Stores ticket details associated with bookings.';
-COMMENT ON COLUMN tickets.ticket_no IS 'Unique ticket number assigned to a passenger.';
-COMMENT ON COLUMN tickets.book_ref IS 'Booking reference associated with this ticket.';
-COMMENT ON COLUMN tickets.passenger_id IS 'Unique identifier of the passenger.';
-COMMENT ON COLUMN tickets.passenger_name IS 'Full name of the passenger.';
-COMMENT ON COLUMN tickets.contact_data IS 'Passenger contact information stored in JSON format.';
+
 
 -- Table storing airport details
 CREATE TABLE IF NOT EXISTS airports (
@@ -33,13 +24,6 @@ CREATE TABLE IF NOT EXISTS airports (
     coordinates_lat DOUBLE PRECISION NOT NULL,  -- Latitude coordinate of the airport
     timezone TEXT NOT NULL  -- Time zone in which the airport operates
 );
-COMMENT ON TABLE airports IS 'Stores information about airports.';
-COMMENT ON COLUMN airports.airport_code IS 'Three-letter IATA airport code.';
-COMMENT ON COLUMN airports.airport_name IS 'Official name of the airport.';
-COMMENT ON COLUMN airports.city IS 'City where the airport is located.';
-COMMENT ON COLUMN airports.coordinates_lon IS 'Longitude coordinate of the airport.';
-COMMENT ON COLUMN airports.coordinates_lat IS 'Latitude coordinate of the airport.';
-COMMENT ON COLUMN airports.timezone IS 'Time zone in which the airport operates.';
 
 -- Table storing aircraft details
 CREATE TABLE IF NOT EXISTS aircrafts (
@@ -47,10 +31,6 @@ CREATE TABLE IF NOT EXISTS aircrafts (
     model JSONB NOT NULL,  -- JSON structure containing aircraft model details
     range INT NOT NULL  -- Maximum range of the aircraft in kilometers
 );
-COMMENT ON TABLE aircrafts IS 'Stores details about aircraft models.';
-COMMENT ON COLUMN aircrafts.aircraft_code IS 'Unique aircraft model identifier.';
-COMMENT ON COLUMN aircrafts.model IS 'JSON structure containing aircraft model details.';
-COMMENT ON COLUMN aircrafts.range IS 'Maximum flight range of the aircraft in kilometers.';
 
 -- Table storing flight schedules
 CREATE TABLE IF NOT EXISTS flights (
@@ -65,17 +45,6 @@ CREATE TABLE IF NOT EXISTS flights (
     actual_departure TIMESTAMPTZ,  -- Actual departure time (if available)
     actual_arrival TIMESTAMPTZ  -- Actual arrival time (if available)
 );
-COMMENT ON TABLE flights IS 'Stores information about scheduled flights.';
-COMMENT ON COLUMN flights.flight_id IS 'Unique identifier for each flight.';
-COMMENT ON COLUMN flights.flight_no IS 'Flight number assigned to the flight.';
-COMMENT ON COLUMN flights.scheduled_departure IS 'Scheduled departure time of the flight.';
-COMMENT ON COLUMN flights.scheduled_arrival IS 'Scheduled arrival time of the flight.';
-COMMENT ON COLUMN flights.departure_airport IS 'IATA code of the departure airport.';
-COMMENT ON COLUMN flights.arrival_airport IS 'IATA code of the arrival airport.';
-COMMENT ON COLUMN flights.status IS 'Current status of the flight (e.g., Scheduled, Cancelled, Delayed).';
-COMMENT ON COLUMN flights.aircraft_code IS 'Code of the aircraft model used for the flight.';
-COMMENT ON COLUMN flights.actual_departure IS 'Actual departure time, if available.';
-COMMENT ON COLUMN flights.actual_arrival IS 'Actual arrival time, if available.';
 
 -- Table storing ticket details for individual flights
 CREATE TABLE IF NOT EXISTS ticket_flights (
@@ -85,11 +54,6 @@ CREATE TABLE IF NOT EXISTS ticket_flights (
     amount NUMERIC(10, 2) NOT NULL,  -- Ticket price for the flight
     PRIMARY KEY (ticket_no, flight_id)
 );
-COMMENT ON TABLE ticket_flights IS 'Stores ticket information related to specific flights.';
-COMMENT ON COLUMN ticket_flights.ticket_no IS 'Ticket number associated with the flight.';
-COMMENT ON COLUMN ticket_flights.flight_id IS 'Flight ID linked to the ticket.';
-COMMENT ON COLUMN ticket_flights.fare_conditions IS 'Fare category for the ticket (e.g., Economy, Business, First Class).';
-COMMENT ON COLUMN ticket_flights.amount IS 'Price of the ticket for the flight.';
 
 -- Table storing seat availability per aircraft model
 CREATE TABLE IF NOT EXISTS seats (
@@ -98,10 +62,6 @@ CREATE TABLE IF NOT EXISTS seats (
     fare_conditions VARCHAR(10) NOT NULL,  -- Fare conditions applicable to the seat
     PRIMARY KEY (aircraft_code, seat_no)
 );
-COMMENT ON TABLE seats IS 'Stores seat details for aircraft models.';
-COMMENT ON COLUMN seats.aircraft_code IS 'Aircraft model code associated with the seat.';
-COMMENT ON COLUMN seats.seat_no IS 'Seat number within the aircraft.';
-COMMENT ON COLUMN seats.fare_conditions IS 'Fare category for the seat (e.g., Economy, Business, First Class).';
 
 -- Table storing boarding passes issued to passengers
 CREATE TABLE IF NOT EXISTS boarding_passes (
@@ -111,8 +71,3 @@ CREATE TABLE IF NOT EXISTS boarding_passes (
     seat_no VARCHAR(4) NOT NULL,  -- Assigned seat number on the flight
     PRIMARY KEY (ticket_no, flight_id)
 );
-COMMENT ON TABLE boarding_passes IS 'Stores boarding pass details for passengers.';
-COMMENT ON COLUMN boarding_passes.ticket_no IS 'Ticket number associated with the boarding pass.';
-COMMENT ON COLUMN boarding_passes.flight_id IS 'Flight ID linked to the boarding pass.';
-COMMENT ON COLUMN boarding_passes.boarding_no IS 'Sequential boarding number assigned to the passenger.';
-COMMENT ON COLUMN boarding_passes.seat_no IS 'Assigned seat number on the flight.';

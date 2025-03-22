@@ -27,9 +27,7 @@ class SQLQuery(BaseModel):
     reasoning: str = Field(
         description="Step-by-step reasoning process explaining how the SQL query was derived"
     )
-    sql_query: str = Field(
-        description="The executable SQL query in PostgreSQL syntax"
-    )
+    sql_query: str = Field(description="The executable SQL query in PostgreSQL syntax")
     explanation: str = Field(
         description="User-friendly explanation of what the query does"
     )
@@ -49,19 +47,16 @@ class VerificationResult(BaseModel):
     validation_status: QueryValidationType = Field(
         description="Whether the query can be answered with the available schema"
     )
-    explanation: str = Field(
-        description="Explanation of the verification result"
-    )
+    explanation: str = Field(description="Explanation of the verification result")
     clarification_question: str | None = Field(
-        default=None,
-        description="Question to ask user when more information is needed"
+        default=None, description="Question to ask user when more information is needed"
     )
 
 
 class Text2SQLAgent(Agent):
     """
     Transforms natural language into optimized SQL queries.
-    
+
     Uses a two-phase approach:
     1. Verification: Validates if query can be answered with available schema
     2. Generation: Creates SQL based on the validated query
@@ -118,14 +113,12 @@ class Text2SQLAgent(Agent):
                 clarification_question=None,
             )
 
-    def _generate_sql(
-        self, query: str, context: Context | None = None
-    ) -> SQLQuery:
+    def _generate_sql(self, query: str, context: Context | None = None) -> SQLQuery:
         """
         Generate SQL from natural language query.
 
         Args:
-            query: Natural language query 
+            query: Natural language query
             context: Optional database context
 
         Returns:
@@ -156,16 +149,14 @@ class Text2SQLAgent(Agent):
             logging.error(traceback.format_exc())
             raise ValueError(f"Failed to generate SQL: {e}")
 
-    def process_query(
-        self, query: str, context: Any | None = None
-    ) -> AgentResponse:
+    def process_query(self, query: str, context: Any | None = None) -> AgentResponse:
         """
         Process user query through verification, SQL generation, and execution.
-        
+
         Follows an evaluator-optimizer workflow:
         1. First verifies if query is answerable
         2. Then generates and executes SQL if valid
-        
+
         Args:
             query: User's natural language query
             context: Optional conversation context

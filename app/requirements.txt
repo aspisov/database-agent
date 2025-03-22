@@ -2,7 +2,6 @@ pandas
 pydantic
 python-dotenv
 langchain-openai
-langchain-gigachat
 sqlalchemy
 streamlit
 dotenv
@@ -11,4 +10,4 @@ python-frontmatter
 instructor
 psycopg2
 psycopg2-binary
-langchain-ollama
+langgraph

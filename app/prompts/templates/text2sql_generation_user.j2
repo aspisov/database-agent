@@ -5,3 +5,11 @@ author: Dmitry Aspisov
 User Query: {{ query }}
 
 Database Metadata: {{ metadata }} 
+
+{% if sql_query %}
+Previous SQL Query: {{ sql_query }}
+{% endif %}
+
+{% if fix %}
+Suggestions for improvement: {{ fix }}
+{% endif %}

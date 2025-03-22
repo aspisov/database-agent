@@ -10,7 +10,6 @@ import traceback
 import typing as tp
 
 import pandas as pd
-from config.settings import get_settings
 from sqlalchemy import (
     MetaData,
     Table,
@@ -23,6 +22,8 @@ from sqlalchemy import (
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
+
+from app.config.settings import get_settings
 
 
 class DatabaseConnector:
@@ -77,9 +78,7 @@ class DatabaseConnector:
             SQLAlchemy Engine object or None if connection fails
         """
         try:
-            connection_string = (
-                f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.db_name}"
-            )
+            connection_string = f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.db_name}"
             return create_engine(connection_string)
         except Exception as e:
             logging.error(f"Error creating database connection: {e}")
@@ -113,7 +112,7 @@ class DatabaseConnector:
             self._initialize()
             if not self._engine:
                 return False
-                
+
         try:
             with self._engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
@@ -152,10 +151,7 @@ class DatabaseConnector:
                     columns = result_proxy.keys()
 
                     # Fetch all rows
-                    rows = [
-                        dict(zip(columns, row))
-                        for row in result_proxy.fetchall()
-                    ]
+                    rows = [dict(zip(columns, row)) for row in result_proxy.fetchall()]
 
                     return {
                         "success": True,
@@ -300,15 +296,11 @@ class DatabaseConnector:
             List of dictionaries with sample data
         """
         try:
-            query = (
-                f"SELECT * FROM {self.schema_name}.{table_name} LIMIT {limit}"
-            )
+            query = f"SELECT * FROM {self.schema_name}.{table_name} LIMIT {limit}"
             result = self.execute_query(query)
             return result.get("rows", [])
         except Exception as e:
-            logging.error(
-                f"Failed to get sample data for {table_name}: {str(e)}"
-            )
+            logging.error(f"Failed to get sample data for {table_name}: {str(e)}")
             logging.error(traceback.format_exc())
             return []
 
@@ -323,17 +315,13 @@ class DatabaseConnector:
             Number of rows
         """
         try:
-            table = Table(
-                table_name, self._metadata, autoload_with=self._engine
-            )
+            table = Table(table_name, self._metadata, autoload_with=self._engine)
             with self._engine.connect() as conn:
                 count_query = select(func.count()).select_from(table)
                 result = conn.execute(count_query)
                 return result.scalar()
         except Exception as e:
-            logging.error(
-                f"Failed to get row count for {table_name}: {str(e)}"
-            )
+            logging.error(f"Failed to get row count for {table_name}: {str(e)}")
             logging.error(traceback.format_exc())
             return -1
 
@@ -374,9 +362,7 @@ class DatabaseConnector:
                 table_desc.append(column_line)
 
             if table["sample_data"]:
-                table_desc.append(
-                    f"Sample data ({len(table['sample_data'])} rows):"
-                )
+                table_desc.append(f"Sample data ({len(table['sample_data'])} rows):")
                 for row in table["sample_data"]:
                     table_desc.append(f"  {row}")
 
@@ -401,9 +387,7 @@ class DatabaseConnector:
             "sql_dialect": "PostgreSQL",
         }
 
-    def to_dataframe(
-        self, query_results: dict[str, tp.Any]
-    ) -> pd.DataFrame | None:
+    def to_dataframe(self, query_results: dict[str, tp.Any]) -> pd.DataFrame | None:
         """
         Convert query results to a pandas DataFrame.
 
@@ -420,9 +404,7 @@ class DatabaseConnector:
             return None
 
         if "rows" not in query_results:
-            logging.info(
-                "Query did not return any rows to convert to DataFrame"
-            )
+            logging.info("Query did not return any rows to convert to DataFrame")
             return None
 
         try:
@@ -430,9 +412,7 @@ class DatabaseConnector:
             df = pd.DataFrame(query_results["rows"])
             return df
         except Exception as e:
-            logging.error(
-                f"Failed to convert query results to DataFrame: {str(e)}"
-            )
+            logging.error(f"Failed to convert query results to DataFrame: {str(e)}")
             logging.error(traceback.format_exc())
             return None
 
@@ -459,4 +439,3 @@ class DatabaseConnector:
     def __del__(self):
         """Clean up resources when object is garbage collected."""
         self.close()
-
