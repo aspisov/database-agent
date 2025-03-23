@@ -1,0 +1,13 @@
+pandas
+pydantic
+python-dotenv
+langchain-openai
+dotenv
+jinja2
+python-frontmatter
+psycopg2-binary
+sqlalchemy
+langgraph
+fastapi
+fastapi-cli
+uvicorn

@@ -1,0 +1,17 @@
+---
+description: User prompt for SQL query verification
+author: Dmitry Aspisov
+---
+User Query: {{ query }}
+
+Database Metadata: {{ metadata }}
+
+Generated SQL Query: {{ sql_query }}
+
+Execution Result: {{ execution_result }}
+
+Use chain-of-thought reasoning to assess the query and then provide your verdict.
+
+Your verdict should be one of the following:
+- "correct"
+- "incorrect"

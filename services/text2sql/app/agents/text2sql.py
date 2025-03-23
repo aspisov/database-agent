@@ -1,4 +1,3 @@
-import operator
 import os
 import webbrowser
 from pathlib import Path
@@ -6,12 +5,11 @@ from pprint import pprint
 from typing import Any, Literal
 
 from dotenv import load_dotenv
-from IPython.display import Image, display
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
-from langgraph.graph import END, START, MessagesState, StateGraph
+from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, Field
-from typing_extensions import Annotated, TypedDict
+from typing_extensions import TypedDict
 
 from app.database.connector import DatabaseConnector
 from app.prompts.prompt_manager import PromptManager
@@ -208,9 +206,7 @@ def route_sql_query(state: State):
 # ------------------------------------------------------------
 
 
-def create_text2sql_subgraph(
-    entry_point_name="text2sql_entry", exit_point_name="text2sql_exit"
-):
+def create_text2sql_subgraph(entry_point_name=START, exit_point_name=END) -> StateGraph:
     """Create a reusable text-to-SQL subgraph
 
     Args:

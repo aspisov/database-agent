@@ -113,29 +113,6 @@ class PromptManager:
         except Exception as e:
             raise ValueError(f"Error loading template info for {template}: {e}")
 
-    # ------ CHAT PROMPTS ------
-    @classmethod
-    def get_chat_system_prompt(cls, db_info: str | None = None) -> str:
-        """Get system prompt for the chat agent."""
-        return cls.get_prompt("chat_system", db_info=db_info)
-
-    # ------ ROUTER PROMPTS ------
-    @classmethod
-    def get_router_system_prompt(cls, examples: bool = True) -> str:
-        """Get system prompt for the query router."""
-        return cls.get_prompt("router_system", examples=examples)
-
-    @classmethod
-    def get_router_user_prompt(cls, query: str) -> str:
-        """Get user prompt for query classification."""
-        return cls.get_prompt("router_user", query=query)
-
-    @classmethod
-    def get_summarizer_system_prompt(cls) -> str:
-        """Get system prompt for the conversation summarizer."""
-        return cls.get_prompt("summarizer_system")
-
-    # ------ TEXT2SQL PROMPTS ------
     @classmethod
     def get_text2sql_generation_system_prompt(cls) -> str:
         """Get system prompt for SQL generation."""
