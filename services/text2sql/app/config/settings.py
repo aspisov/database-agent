@@ -27,7 +27,7 @@ class OpenAISettings(LLMSettings):
 
 
 class DatabaseSettings(BaseModel):
-    host: str = os.getenv("DB_HOST", "localhost")
+    host: str = os.getenv("DB_HOST", "host.docker.internal")
     port: int = int(os.getenv("DB_PORT", 5432))
     user: str = os.getenv("DB_USER", "postgres")
     password: str = os.getenv("DB_PASSWORD", "postgres")

@@ -70,97 +70,70 @@ class PromptManager:
         except Exception as e:
             raise ValueError(f"Error loading template {template}: {e}")
 
-    @staticmethod
-    def get_template_info(template: str) -> dict[str, Any]:
-        """
-        Get metadata about a template.
-
-        Args:
-            template: Template name (without .j2 extension)
-
-        Returns:
-            Dictionary with template metadata and variables
-        """
-        env = PromptManager.get_env()
-        if not env or not env.loader:
-            raise ValueError("Jinja2 environment or loader not initialized")
-
-        template_path = f"{template}.j2"
-        try:
-            # Get source tuple (source, filename, uptodate)
-            source_tuple = env.loader.get_source(env, template_path)
-            if source_tuple and len(source_tuple) > 1:
-                filename = cast(str, source_tuple[1])
-                with open(filename) as file:
-                    post = frontmatter.load(file)
-
-                ast = env.parse(post.content)
-                variables = meta.find_undeclared_variables(ast)
-
-                return {
-                    "name": template,
-                    "description": post.metadata.get(
-                        "description", "No description provided"
-                    ),
-                    "author": post.metadata.get("author", "Unknown"),
-                    "variables": list(variables),
-                    "frontmatter": post.metadata,
-                }
-            else:
-                raise ValueError(
-                    f"Template {template} not found or invalid source tuple"
-                )
-        except Exception as e:
-            raise ValueError(f"Error loading template info for {template}: {e}")
-
     @classmethod
-    def get_text2sql_generation_system_prompt(cls) -> str:
+    def get_generation_system_prompt(cls) -> str:
         """Get system prompt for SQL generation."""
-        return cls.get_prompt("text2sql_generation_system")
+        return cls.get_prompt("generation_system")
 
     @classmethod
-    def get_text2sql_generation_user_prompt(
+    def get_generation_user_prompt(
         cls,
-        query: str,
+        user_query: str,
         metadata: str,
         sql_query: str | None = None,
-        fix: str | None = None,
+        correction: str | None = None,
     ) -> str:
         """Get user prompt for SQL generation."""
         return cls.get_prompt(
-            "text2sql_generation_user",
-            query=query,
+            "generation_user",
+            user_query=user_query,
             metadata=metadata,
             sql_query=sql_query,
-            fix=fix,
+            correction=correction,
         )
 
     @classmethod
-    def get_text2sql_validation_system_prompt(cls) -> str:
+    def get_validation_system_prompt(cls) -> str:
         """Get system prompt for SQL query validation."""
-        return cls.get_prompt("text2sql_validation_system")
+        return cls.get_prompt("validation_system")
 
     @classmethod
-    def get_text2sql_validation_user_prompt(cls, query: str, metadata: str) -> str:
+    def get_validation_user_prompt(cls, user_query: str, metadata: str) -> str:
         """Get user prompt for SQL query validation."""
-        return cls.get_prompt(
-            "text2sql_validation_user", query=query, metadata=metadata
-        )
+        return cls.get_prompt("validation_user", user_query=user_query, metadata=metadata)
 
     @classmethod
-    def get_text2sql_evaluation_system_prompt(cls) -> str:
+    def get_evaluation_system_prompt(cls) -> str:
         """Get system prompt for SQL query evaluation."""
-        return cls.get_prompt("text2sql_evaluation_system")
+        return cls.get_prompt("evaluation_system")
 
     @classmethod
-    def get_text2sql_evaluation_user_prompt(
-        cls, query: str, metadata: str, sql_query: str, execution_result: str
+    def get_evaluation_user_prompt(
+        cls, user_query: str, metadata: str, sql_query: str, execution_results: str
     ) -> str:
         """Get user prompt for SQL query evaluation."""
         return cls.get_prompt(
-            "text2sql_evaluation_user",
-            query=query,
+            "evaluation_user",
+            user_query=user_query,
             metadata=metadata,
             sql_query=sql_query,
-            execution_result=execution_result,
+            execution_results=execution_results,
+        )
+
+    @classmethod
+    def get_response_system_prompt(cls) -> str:
+        """Get system prompt for response formatting."""
+        return cls.get_prompt("response_system")
+
+    @classmethod
+    def get_response_user_prompt(
+        cls, user_query: str, metadata: str, sql_query: str, execution_results: str
+    ) -> str:
+        """Get user prompt for response formatting."""
+        return cls.get_prompt(
+            "response_user",
+            user_query=user_query,
+            metadata=metadata,
+            sql_query=sql_query,
+            execution_results=execution_results,
         )

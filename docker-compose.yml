@@ -9,9 +9,22 @@ services:
       - 5432:5432
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./data/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
-      - ./data/data.sql:/docker-entrypoint-initdb.d/02-data.sql
+      - ./services/postgres/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./services/postgres/data.sql:/docker-entrypoint-initdb.d/02-data.sql
     restart: always
+
+  text2sql:
+    build:
+      context: ./services/text2sql
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - ./services/text2sql/output:/app/output
+    depends_on:
+      - database
 
 volumes:
   pgdata:

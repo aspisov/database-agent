@@ -158,14 +158,12 @@ class DatabaseConnector:
                         "columns": columns,
                         "rows": rows,
                         "row_count": len(rows),
-                        "query": query,
                     }
                 else:
                     # For INSERT, UPDATE, DELETE operations
                     return {
                         "success": True,
                         "row_count": result_proxy.rowcount,
-                        "query": query,
                     }
         except Exception as e:
             logging.error(f"Query execution failed: {str(e)}")
@@ -173,7 +171,6 @@ class DatabaseConnector:
             return {
                 "success": False,
                 "error": str(e),
-                "query": query,
             }
 
     def get_schema_info(self) -> dict[str, tp.Any]:

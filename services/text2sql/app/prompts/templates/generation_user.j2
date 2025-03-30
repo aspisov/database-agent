@@ -2,7 +2,7 @@
 description: User prompt for SQL generation
 author: Dmitry Aspisov
 ---
-User Query: {{ query }}
+User Query: {{ user_query }}
 
 Database Metadata: {{ metadata }} 
 
@@ -10,6 +10,6 @@ Database Metadata: {{ metadata }}
 Previous SQL Query: {{ sql_query }}
 {% endif %}
 
-{% if fix %}
-Suggestions for improvement: {{ fix }}
+{% if correction %}
+Suggestions for improvement: {{ correction }}
 {% endif %}
